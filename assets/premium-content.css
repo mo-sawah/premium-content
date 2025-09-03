@@ -1,0 +1,59 @@
+/* --- UPDATED Premium Badge Style (Fix for Hover & Overlay) --- */
+
+/* Targeting the badge in all states, including within a .loop-overlay */
+.premium-meta-badge,
+.loop-overlay .premium-meta-badge {
+    /* Reset the main container to be transparent */
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+
+    /* Use flexbox to align the icon box and text */
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important; 
+    margin-left: 8px !important;
+    vertical-align: middle !important;
+}
+
+/* Targeting the icon in all states */
+.premium-meta-badge .premium-crown-icon,
+.loop-overlay .premium-meta-badge .premium-crown-icon {
+    background: #4B4B4B !important;
+    padding: 1px !important; 
+    border-radius: 3px !important;
+    width: 16px !important; 
+    height: 16px !important;
+    color: #ffd700 !important;
+    box-sizing: content-box !important;
+    transition: background 0.2s ease !important; /* Added for a smooth hover effect */
+}
+
+/* Targeting the text in all states */
+.premium-meta-badge .premium-text,
+.loop-overlay .premium-meta-badge .premium-text {
+    /* 1. Set the background to a golden gradient */
+    background: linear-gradient(180deg, #FFDC73 0%, #E8B923 50%, #BF953F 100%) !important;
+    /* 2. Clip the background to the text's shape */
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    /* 3. Make the text color transparent to show the gradient */
+    color: transparent !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    background: none !important;
+}
+
+/* --- FIX for Hover State --- */
+
+/* This rule ensures the main container remains transparent on hover */
+.premium-meta-badge:hover {
+    background: transparent !important;
+}
+
+/* This rule adds a new, subtle hover effect to the icon box itself */
+.premium-meta-badge:hover .premium-crown-icon {
+    background: #333 !important; /* Darkens the icon box slightly on hover */
+}
