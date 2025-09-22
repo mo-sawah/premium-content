@@ -54,10 +54,9 @@ class Premium_Content_Ajax {
             wp_send_json_error( 'Please use a corporate email address. Personal email addresses (Gmail, Yahoo, Outlook, etc.) are not accepted.' );
         }
 
-        // Check if both checkboxes are checked.
-        if ( empty($checkbox1) || empty($checkbox2) ) {
-            wp_send_json_error( 'You must agree to both terms to continue reading.' );
-        }
+        // FIXED: Only check enabled checkboxes instead of both
+        // Remove the old logic that always checked both checkboxes
+        // The individual validation above already handles this correctly
 
         // Check if the email already exists for this post.
         $table_name = $wpdb->prefix . 'smart_mag_premium_emails';
