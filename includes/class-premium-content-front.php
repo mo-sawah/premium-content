@@ -17,6 +17,13 @@ class Premium_Content_Front {
     }
 
     /**
+     * Get text option with fallback to default.
+     */
+    private function get_premium_content_text($text_name, $default) {
+        return get_option('premium_content_' . $text_name, $default);
+    }
+
+    /**
      * Enqueue styles for the premium content gate with customizable colors.
      */
     public function enqueue_styles() {
@@ -115,7 +122,7 @@ class Premium_Content_Front {
         }
 
         .premium-content-custom-checkbox.checked::after {
-            content: '✓';
+            content: 'âœ"';
             position: absolute;
             color: white;
             font-size: 14px;
@@ -235,20 +242,35 @@ class Premium_Content_Front {
         $privacy_policy_url = get_privacy_policy_url();
         $text = str_replace('[privacy_policy_link]', esc_url($privacy_policy_url), $text);
 
-        $terms_of_use_url = '#'; 
+        $terms_of_use_url = $this->get_premium_content_text('terms_of_use_url', '#');
         $text = str_replace('[terms_of_use_link]', esc_url($terms_of_use_url), $text);
 
-        $ccpa_privacy_notice_url = '#';
+        $ccpa_privacy_notice_url = $this->get_premium_content_text('ccpa_privacy_notice_url', '#');
         $text = str_replace('[ccpa_privacy_notice_link]', esc_url($ccpa_privacy_notice_url), $text);
 
         return $text;
     }
 
     /**
+     * Check if post should display premium content gate
+     */
+    private function should_show_premium_gate() {
+        $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+        
+        // If "enable all posts" is checked, show on all posts
+        if ($enable_all_posts === '1' && is_single()) {
+            return true;
+        }
+        
+        // Otherwise, only show on posts tagged with "premium" (original behavior)
+        return is_main_query() && has_tag('premium');
+    }
+
+    /**
      * Filter the post content to truncate premium articles.
      */
     public function filter_the_content( $content ) {
-        if ( is_main_query() && has_tag( 'premium' ) ) {
+        if ( $this->should_show_premium_gate() ) {
             $post_id = get_the_ID();
             $cookie_name = 'premium_content_' . $post_id;
             
@@ -260,33 +282,42 @@ class Premium_Content_Front {
             $truncated_content = substr( $content, 0, $truncate_length );
             $nonce = wp_create_nonce( 'premium_email_nonce' );
 
+            // Get customizable text content
+            $main_title = $this->get_premium_content_text('main_title', 'Continue Reading This Article');
+            $subtitle = $this->get_premium_content_text('subtitle', 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.');
+            $email_placeholder = $this->get_premium_content_text('email_placeholder', 'Corporate Email Address');
+            $button_text = $this->get_premium_content_text('button_text', 'Continue Reading');
+            $checkbox1_text = $this->get_premium_content_text('checkbox1_text', 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.');
+            $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
+            $disclaimer_text = $this->get_premium_content_text('disclaimer_text', 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.');
+
             $form_html = '
                 <div id="premium-content-gate" class="premium-content-gate">
                     <div class="premium-content-form-wrapper">
-                        <h2 class="premium-content-title">Continue Reading This Article</h2>
-                        <p class="premium-content-subtitle">Enjoy this article as well as all of our content, including E-Guides, news, tips and more.</p>
+                        <h2 class="premium-content-title">' . esc_html($main_title) . '</h2>
+                        <p class="premium-content-subtitle">' . esc_html($subtitle) . '</p>
                         <form id="premium-content-form" class="premium-content-form">
-                            <input type="email" name="premium_email" placeholder="Corporate Email Address" required class="premium-content-email-input">
+                            <input type="email" name="premium_email" placeholder="' . esc_attr($email_placeholder) . '" required class="premium-content-email-input">
                             
                             <div class="premium-content-checkbox-group">
                                 <div class="premium-content-checkbox-item">
                                     <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox1\')"></div>
                                     <input type="hidden" name="checkbox1" value="">
-                                    <div class="premium-content-checkbox-text">I agree to ' . get_bloginfo('name') . ' and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.</div>
+                                    <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox1_text)) . '</div>
                                 </div>
                                 
                                 <div class="premium-content-checkbox-item">
                                     <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox2\')"></div>
                                     <input type="hidden" name="checkbox2" value="">
-                                    <div class="premium-content-checkbox-text">I agree to ' . get_bloginfo('name') . '\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.</div>
+                                    <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox2_text)) . '</div>
                                 </div>
                             </div>
                             
                             <input type="hidden" name="premium_nonce" value="' . esc_attr( $nonce ) . '">
                             <input type="hidden" name="post_id" value="' . esc_attr( $post_id ) . '">
-                            <button type="submit" class="premium-content-submit-button"><span>Continue Reading</span></button>
+                            <button type="submit" class="premium-content-submit-button"><span>' . esc_html($button_text) . '</span></button>
                         </form>
-                        <p class="premium-content-disclaimer">By registering or signing into your ' . get_bloginfo('name') . ' account, you agree to ' . get_bloginfo('name') . '\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to ' . get_bloginfo('name') . '\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.</p>
+                        <p class="premium-content-disclaimer">' . wp_kses_post($this->replace_placeholders($disclaimer_text)) . '</p>
                     </div>
                 </div>
             ';
@@ -347,8 +378,6 @@ class Premium_Content_Front {
                     });
                 </script>
             ';
-
-            $form_html = $this->replace_placeholders($form_html);
 
             return '
                 <div id="truncated-content">

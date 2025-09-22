@@ -50,6 +50,13 @@ class Premium_Content_Admin {
     }
 
     /**
+     * Get text option with fallback to default.
+     */
+    private function get_premium_content_text($text_name, $default) {
+        return get_option('premium_content_' . $text_name, $default);
+    }
+
+    /**
      * Settings page callback function.
      */
     public function settings_page() {
@@ -76,17 +83,41 @@ class Premium_Content_Admin {
         }
 
         if (isset($_POST['submit']) && wp_verify_nonce($_POST['premium_content_nonce'], 'premium_content_settings')) {
+            // Save colors
             $colors = array( 'primary_color', 'secondary_color', 'border_color', 'text_color', 'title_color', 'link_color', 'background_color' );
-
             foreach ($colors as $color) {
                 if (isset($_POST[$color])) {
                     update_option('premium_content_' . $color, sanitize_hex_color($_POST[$color]));
                 }
             }
 
+            // Save mode settings
+            $enable_all_posts = isset($_POST['enable_all_posts']) ? '1' : '0';
+            update_option('premium_content_enable_all_posts', $enable_all_posts);
+
+            // Save text settings
+            $text_fields = array(
+                'main_title' => 'Continue Reading This Article',
+                'subtitle' => 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.',
+                'email_placeholder' => 'Corporate Email Address',
+                'button_text' => 'Continue Reading',
+                'checkbox1_text' => 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.',
+                'checkbox2_text' => 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.',
+                'disclaimer_text' => 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.',
+                'terms_of_use_url' => '#',
+                'ccpa_privacy_notice_url' => '#'
+            );
+
+            foreach ($text_fields as $field => $default) {
+                if (isset($_POST[$field])) {
+                    update_option('premium_content_' . $field, wp_kses_post($_POST[$field]));
+                }
+            }
+
             echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
         }
 
+        // Get current values
         $primary_color = $this->get_premium_content_color('primary_color', '#2c3e50');
         $secondary_color = $this->get_premium_content_color('secondary_color', '#667eea');
         $border_color = $this->get_premium_content_color('border_color', '#e1e5e9');
@@ -94,16 +125,114 @@ class Premium_Content_Admin {
         $title_color = $this->get_premium_content_color('title_color', '#2c3e50');
         $link_color = $this->get_premium_content_color('link_color', '#667eea');
         $background_color = $this->get_premium_content_color('background_color', '#ffffff');
+        
+        $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+        $main_title = $this->get_premium_content_text('main_title', 'Continue Reading This Article');
+        $subtitle = $this->get_premium_content_text('subtitle', 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.');
+        $email_placeholder = $this->get_premium_content_text('email_placeholder', 'Corporate Email Address');
+        $button_text = $this->get_premium_content_text('button_text', 'Continue Reading');
+        $checkbox1_text = $this->get_premium_content_text('checkbox1_text', 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.');
+        $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
+        $disclaimer_text = $this->get_premium_content_text('disclaimer_text', 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.');
+        $terms_of_use_url = $this->get_premium_content_text('terms_of_use_url', '#');
+        $ccpa_privacy_notice_url = $this->get_premium_content_text('ccpa_privacy_notice_url', '#');
 
         // HTML for settings page
         ?>
         <div class="wrap">
             <h1>Premium Content Settings</h1>
-            <p>Customize the colors and appearance of your premium content gate.</p>
+            <p>Customize the colors, text, and behavior of your premium content gate.</p>
             
             <form method="post" action="">
                 <?php wp_nonce_field('premium_content_settings', 'premium_content_nonce'); ?>
                 
+                <!-- Mode Settings -->
+                <h2>Mode Settings</h2>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row"><label for="enable_all_posts">Enable for All Posts</label></th>
+                            <td>
+                                <input type="checkbox" id="enable_all_posts" name="enable_all_posts" value="1" <?php checked($enable_all_posts, '1'); ?> />
+                                <p class="description">When enabled, the paywall will appear on ALL posts (old and new) by default, not just those tagged with "premium". Posts tagged with "premium" will still work as before.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Text Settings -->
+                <h2>Text Settings</h2>
+                <p><strong>Available placeholders:</strong> [site_name], [privacy_policy_link], [terms_of_use_link], [ccpa_privacy_notice_link]</p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row"><label for="main_title">Main Title</label></th>
+                            <td>
+                                <input type="text" id="main_title" name="main_title" value="<?php echo esc_attr($main_title); ?>" class="regular-text" />
+                                <p class="description">The main heading text above the form.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="subtitle">Subtitle</label></th>
+                            <td>
+                                <textarea id="subtitle" name="subtitle" rows="2" class="large-text"><?php echo esc_textarea($subtitle); ?></textarea>
+                                <p class="description">The descriptive text below the main title.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="email_placeholder">Email Placeholder</label></th>
+                            <td>
+                                <input type="text" id="email_placeholder" name="email_placeholder" value="<?php echo esc_attr($email_placeholder); ?>" class="regular-text" />
+                                <p class="description">Placeholder text for the email input field.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="button_text">Button Text</label></th>
+                            <td>
+                                <input type="text" id="button_text" name="button_text" value="<?php echo esc_attr($button_text); ?>" class="regular-text" />
+                                <p class="description">Text displayed on the submit button.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="checkbox1_text">First Checkbox Text</label></th>
+                            <td>
+                                <textarea id="checkbox1_text" name="checkbox1_text" rows="3" class="large-text"><?php echo esc_textarea($checkbox1_text); ?></textarea>
+                                <p class="description">Text for the first consent checkbox.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="checkbox2_text">Second Checkbox Text</label></th>
+                            <td>
+                                <textarea id="checkbox2_text" name="checkbox2_text" rows="3" class="large-text"><?php echo esc_textarea($checkbox2_text); ?></textarea>
+                                <p class="description">Text for the second consent checkbox. HTML allowed.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="disclaimer_text">Disclaimer Text</label></th>
+                            <td>
+                                <textarea id="disclaimer_text" name="disclaimer_text" rows="4" class="large-text"><?php echo esc_textarea($disclaimer_text); ?></textarea>
+                                <p class="description">Legal disclaimer text at the bottom. HTML allowed.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="terms_of_use_url">Terms of Use URL</label></th>
+                            <td>
+                                <input type="url" id="terms_of_use_url" name="terms_of_use_url" value="<?php echo esc_attr($terms_of_use_url); ?>" class="regular-text" />
+                                <p class="description">URL for [terms_of_use_link] placeholder.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="ccpa_privacy_notice_url">CCPA Privacy Notice URL</label></th>
+                            <td>
+                                <input type="url" id="ccpa_privacy_notice_url" name="ccpa_privacy_notice_url" value="<?php echo esc_attr($ccpa_privacy_notice_url); ?>" class="regular-text" />
+                                <p class="description">URL for [ccpa_privacy_notice_link] placeholder.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Color Settings -->
+                <h2>Color Settings</h2>
                 <table class="form-table" role="presentation">
                     <tbody>
                         <tr>
@@ -138,7 +267,7 @@ class Premium_Content_Admin {
                             <th scope="row"><label for="title_color">Title Color</label></th>
                             <td>
                                 <input type="color" id="title_color" name="title_color" value="<?php echo esc_attr($title_color); ?>" class="color-picker" />
-                                <p class="description">Used for the main title "Continue Reading This Article".</p>
+                                <p class="description">Used for the main title.</p>
                             </td>
                         </tr>
                         <tr>
@@ -168,9 +297,9 @@ class Premium_Content_Admin {
                         max-width: 500px;
                         margin: 20px 0;
                     ">
-                        <h4 style="color: <?php echo esc_attr($title_color); ?>; margin: 0 0 10px 0;">Continue Reading This Article</h4>
-                        <p style="color: <?php echo esc_attr($text_color); ?>; margin: 0 0 15px 0; font-size: 14px;">Enjoy this article as well as all of our content...</p>
-                        <input type="text" placeholder="Corporate Email Address" style="
+                        <h4 style="color: <?php echo esc_attr($title_color); ?>; margin: 0 0 10px 0;"><?php echo esc_html($main_title); ?></h4>
+                        <p style="color: <?php echo esc_attr($text_color); ?>; margin: 0 0 15px 0; font-size: 14px;"><?php echo esc_html($subtitle); ?></p>
+                        <input type="text" placeholder="<?php echo esc_attr($email_placeholder); ?>" style="
                             width: 100%; 
                             padding: 8px 5px; 
                             border: none; 
@@ -185,7 +314,7 @@ class Premium_Content_Admin {
                             border: none;
                             width: 100%;
                             cursor: not-allowed;
-                        ">Continue Reading</button>
+                        "><?php echo esc_html($button_text); ?></button>
                         <p style="color: <?php echo esc_attr($text_color); ?>; font-size: 12px; margin: 10px 0 0 0;">
                             Links will appear in <span style="color: <?php echo esc_attr($link_color); ?>;">this color</span>.
                         </p>
