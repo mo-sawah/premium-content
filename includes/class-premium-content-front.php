@@ -272,9 +272,8 @@ class Premium_Content_Front {
     public function filter_the_content( $content ) {
         if ( $this->should_show_premium_gate() ) {
             $post_id = get_the_ID();
-            $cookie_name = 'premium_content_' . $post_id;
-            
-            if ( isset($_COOKIE[$cookie_name]) && $_COOKIE[$cookie_name] == 'unlocked' ) {
+            // Check for global unlock cookie
+            if ( isset($_COOKIE['premium_content_global_unlock']) && $_COOKIE['premium_content_global_unlock'] == 'unlocked' ) {
                 return $content;
             }
 

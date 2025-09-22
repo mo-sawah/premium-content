@@ -51,7 +51,8 @@ class Premium_Content_Ajax {
         ) );
 
         if ( $existing_entry > 0 ) {
-            setcookie('premium_content_' . $post_id, 'unlocked', time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN);
+            // Set global unlock cookie instead of post-specific
+            setcookie('premium_content_global_unlock', 'unlocked', time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN);
             wp_send_json_success( 'Email already submitted.' );
         }
 
