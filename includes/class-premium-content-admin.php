@@ -7,6 +7,7 @@ class Premium_Content_Admin {
     public function __construct() {
         add_action('admin_menu', array( $this, 'add_admin_menu' ));
         add_action('admin_init', array( $this, 'handle_emails_export' ));
+        add_action('wp_ajax_test_premium_integration', array( $this, 'test_integration_ajax' ));
     }
     
     /**
@@ -34,6 +35,15 @@ class Premium_Content_Admin {
 
         add_submenu_page(
             'premium-content',
+            'Integrations',
+            'Integrations',
+            'manage_options',
+            'premium-integrations',
+            array( $this, 'integrations_page' )
+        );
+
+        add_submenu_page(
+            'premium-content',
             'Premium Emails',
             'Premium Emails',
             'manage_options',
@@ -54,6 +64,312 @@ class Premium_Content_Admin {
      */
     private function get_premium_content_text($text_name, $default) {
         return get_option('premium_content_' . $text_name, $default);
+    }
+
+    /**
+     * Test integration AJAX handler
+     */
+    public function test_integration_ajax() {
+        if (!current_user_can('manage_options') || !wp_verify_nonce($_POST['nonce'], 'test_premium_integration')) {
+            wp_send_json_error(array('message' => 'Permission denied'));
+        }
+
+        $integration_type = sanitize_text_field($_POST['integration_type']);
+        
+        // Load integrations class
+        require_once plugin_dir_path( __FILE__ ) . 'class-premium-content-integrations.php';
+        $integrations = new Premium_Content_Integrations();
+        
+        $result = $integrations->test_connection($integration_type);
+        
+        if ($result['success']) {
+            wp_send_json_success($result);
+        } else {
+            wp_send_json_error($result);
+        }
+    }
+
+    /**
+     * Integrations page callback function.
+     */
+    public function integrations_page() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['premium_integration_nonce'], 'premium_integration_settings')) {
+            // Save integration settings
+            $integration_enabled = isset($_POST['integration_enabled']) ? '1' : '0';
+            update_option('premium_content_integration_enabled', $integration_enabled);
+
+            $integration_type = sanitize_text_field($_POST['integration_type']);
+            update_option('premium_content_integration_type', $integration_type);
+
+            $integration_logging = isset($_POST['integration_logging']) ? '1' : '0';
+            update_option('premium_content_integration_logging', $integration_logging);
+
+            // Save Mailchimp settings
+            if (isset($_POST['mailchimp_api_key'])) {
+                update_option('premium_content_mailchimp_api_key', sanitize_text_field($_POST['mailchimp_api_key']));
+            }
+            if (isset($_POST['mailchimp_list_id'])) {
+                update_option('premium_content_mailchimp_list_id', sanitize_text_field($_POST['mailchimp_list_id']));
+            }
+
+            // Save Zoho settings
+            if (isset($_POST['zoho_client_id'])) {
+                update_option('premium_content_zoho_client_id', sanitize_text_field($_POST['zoho_client_id']));
+            }
+            if (isset($_POST['zoho_client_secret'])) {
+                update_option('premium_content_zoho_client_secret', sanitize_text_field($_POST['zoho_client_secret']));
+            }
+            if (isset($_POST['zoho_access_token'])) {
+                update_option('premium_content_zoho_access_token', sanitize_text_field($_POST['zoho_access_token']));
+            }
+            if (isset($_POST['zoho_refresh_token'])) {
+                update_option('premium_content_zoho_refresh_token', sanitize_text_field($_POST['zoho_refresh_token']));
+            }
+            if (isset($_POST['zoho_datacenter'])) {
+                update_option('premium_content_zoho_datacenter', sanitize_text_field($_POST['zoho_datacenter']));
+            }
+
+            echo '<div class="notice notice-success"><p>Integration settings saved successfully!</p></div>';
+        }
+
+        // Get current values
+        $integration_enabled = get_option('premium_content_integration_enabled', '0');
+        $integration_type = get_option('premium_content_integration_type', 'none');
+        $integration_logging = get_option('premium_content_integration_logging', '0');
+        
+        $mailchimp_api_key = get_option('premium_content_mailchimp_api_key', '');
+        $mailchimp_list_id = get_option('premium_content_mailchimp_list_id', '');
+        
+        $zoho_client_id = get_option('premium_content_zoho_client_id', '');
+        $zoho_client_secret = get_option('premium_content_zoho_client_secret', '');
+        $zoho_access_token = get_option('premium_content_zoho_access_token', '');
+        $zoho_refresh_token = get_option('premium_content_zoho_refresh_token', '');
+        $zoho_datacenter = get_option('premium_content_zoho_datacenter', 'com');
+
+        ?>
+        <div class="wrap">
+            <h1>Email Marketing Integrations</h1>
+            <p>Connect your premium content to Mailchimp or Zoho CRM to automatically add subscribers.</p>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('premium_integration_settings', 'premium_integration_nonce'); ?>
+                
+                <!-- General Settings -->
+                <h2>General Settings</h2>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row"><label for="integration_enabled">Enable Integration</label></th>
+                            <td>
+                                <input type="checkbox" id="integration_enabled" name="integration_enabled" value="1" <?php checked($integration_enabled, '1'); ?> />
+                                <p class="description">Enable automatic sending of emails to your chosen marketing platform.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="integration_type">Integration Type</label></th>
+                            <td>
+                                <select id="integration_type" name="integration_type">
+                                    <option value="none" <?php selected($integration_type, 'none'); ?>>None</option>
+                                    <option value="mailchimp" <?php selected($integration_type, 'mailchimp'); ?>>Mailchimp</option>
+                                    <option value="zoho" <?php selected($integration_type, 'zoho'); ?>>Zoho CRM</option>
+                                </select>
+                                <p class="description">Choose your email marketing platform.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="integration_logging">Enable Logging</label></th>
+                            <td>
+                                <input type="checkbox" id="integration_logging" name="integration_logging" value="1" <?php checked($integration_logging, '1'); ?> />
+                                <p class="description">Log integration attempts for debugging (check WordPress error logs).</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Mailchimp Settings -->
+                <div id="mailchimp-settings" style="display: <?php echo $integration_type === 'mailchimp' ? 'block' : 'none'; ?>;">
+                    <h2>Mailchimp Settings</h2>
+                    <div class="integration-instructions">
+                        <h4>How to get your Mailchimp API Key and List ID:</h4>
+                        <ol>
+                            <li>Log into your <a href="https://mailchimp.com/login/" target="_blank">Mailchimp account</a></li>
+                            <li>Go to <strong>Profile → Extras → API keys</strong></li>
+                            <li>Create a new API key or copy an existing one</li>
+                            <li>For List ID: Go to <strong>Audience → All contacts → Settings → Audience name and campaign defaults</strong></li>
+                            <li>Find the "Audience ID" at the bottom of the page</li>
+                        </ol>
+                    </div>
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <tr>
+                                <th scope="row"><label for="mailchimp_api_key">API Key</label></th>
+                                <td>
+                                    <input type="password" id="mailchimp_api_key" name="mailchimp_api_key" value="<?php echo esc_attr($mailchimp_api_key); ?>" class="regular-text" />
+                                    <p class="description">Your Mailchimp API key (format: xxxxxxxxxxxxxxxxxx-us1)</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="mailchimp_list_id">List/Audience ID</label></th>
+                                <td>
+                                    <input type="text" id="mailchimp_list_id" name="mailchimp_list_id" value="<?php echo esc_attr($mailchimp_list_id); ?>" class="regular-text" />
+                                    <p class="description">Your Mailchimp list/audience ID</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p>
+                        <button type="button" class="button" onclick="testIntegration('mailchimp')">Test Mailchimp Connection</button>
+                        <span id="mailchimp-test-result"></span>
+                    </p>
+                </div>
+
+                <!-- Zoho Settings -->
+                <div id="zoho-settings" style="display: <?php echo $integration_type === 'zoho' ? 'block' : 'none'; ?>;">
+                    <h2>Zoho CRM Settings</h2>
+                    <div class="integration-instructions">
+                        <h4>How to set up Zoho CRM integration:</h4>
+                        <ol>
+                            <li>Go to <a href="https://api-console.zoho.com/" target="_blank">Zoho API Console</a></li>
+                            <li>Create a new "Server-based Applications" client</li>
+                            <li>Note down the Client ID and Client Secret</li>
+                            <li>Generate authorization code using scope: <code>ZohoCRM.modules.ALL</code></li>
+                            <li>Exchange authorization code for access and refresh tokens</li>
+                            <li><strong>Detailed setup guide:</strong> <a href="https://www.zoho.com/crm/developer/docs/api/v2/oauth-overview.html" target="_blank">Zoho OAuth Documentation</a></li>
+                        </ol>
+                    </div>
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <tr>
+                                <th scope="row"><label for="zoho_client_id">Client ID</label></th>
+                                <td>
+                                    <input type="text" id="zoho_client_id" name="zoho_client_id" value="<?php echo esc_attr($zoho_client_id); ?>" class="regular-text" />
+                                    <p class="description">Your Zoho application Client ID</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="zoho_client_secret">Client Secret</label></th>
+                                <td>
+                                    <input type="password" id="zoho_client_secret" name="zoho_client_secret" value="<?php echo esc_attr($zoho_client_secret); ?>" class="regular-text" />
+                                    <p class="description">Your Zoho application Client Secret</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="zoho_access_token">Access Token</label></th>
+                                <td>
+                                    <textarea id="zoho_access_token" name="zoho_access_token" rows="3" class="large-text"><?php echo esc_textarea($zoho_access_token); ?></textarea>
+                                    <p class="description">Your Zoho access token</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="zoho_refresh_token">Refresh Token</label></th>
+                                <td>
+                                    <textarea id="zoho_refresh_token" name="zoho_refresh_token" rows="3" class="large-text"><?php echo esc_textarea($zoho_refresh_token); ?></textarea>
+                                    <p class="description">Your Zoho refresh token</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="zoho_datacenter">Data Center</label></th>
+                                <td>
+                                    <select id="zoho_datacenter" name="zoho_datacenter">
+                                        <option value="com" <?php selected($zoho_datacenter, 'com'); ?>>Global (.com)</option>
+                                        <option value="eu" <?php selected($zoho_datacenter, 'eu'); ?>>Europe (.eu)</option>
+                                        <option value="in" <?php selected($zoho_datacenter, 'in'); ?>>India (.in)</option>
+                                        <option value="com.au" <?php selected($zoho_datacenter, 'com.au'); ?>>Australia (.com.au)</option>
+                                        <option value="jp" <?php selected($zoho_datacenter, 'jp'); ?>>Japan (.jp)</option>
+                                    </select>
+                                    <p class="description">Select your Zoho data center region</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p>
+                        <button type="button" class="button" onclick="testIntegration('zoho')">Test Zoho Connection</button>
+                        <span id="zoho-test-result"></span>
+                    </p>
+                </div>
+                
+                <?php submit_button('Save Integration Settings'); ?>
+            </form>
+        </div>
+
+        <style>
+            .integration-instructions {
+                background: #f0f8ff;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            .integration-instructions h4 {
+                margin-top: 0;
+                color: #2c3e50;
+            }
+            .integration-instructions ol {
+                margin: 10px 0;
+            }
+            .integration-instructions code {
+                background: #f4f4f4;
+                padding: 2px 4px;
+                border-radius: 3px;
+            }
+            .test-success {
+                color: #46b450;
+                font-weight: bold;
+            }
+            .test-error {
+                color: #dc3232;
+                font-weight: bold;
+            }
+        </style>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const integrationTypeSelect = document.getElementById('integration_type');
+                const mailchimpSettings = document.getElementById('mailchimp-settings');
+                const zohoSettings = document.getElementById('zoho-settings');
+
+                function toggleIntegrationSettings() {
+                    const selectedType = integrationTypeSelect.value;
+                    
+                    mailchimpSettings.style.display = selectedType === 'mailchimp' ? 'block' : 'none';
+                    zohoSettings.style.display = selectedType === 'zoho' ? 'block' : 'none';
+                }
+
+                integrationTypeSelect.addEventListener('change', toggleIntegrationSettings);
+                toggleIntegrationSettings(); // Initialize
+            });
+
+            function testIntegration(type) {
+                const resultElement = document.getElementById(type + '-test-result');
+                resultElement.innerHTML = '<span style="color: #666;">Testing connection...</span>';
+
+                const formData = new FormData();
+                formData.append('action', 'test_premium_integration');
+                formData.append('integration_type', type);
+                formData.append('nonce', '<?php echo wp_create_nonce('test_premium_integration'); ?>');
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resultElement.innerHTML = '<span class="test-success">✓ ' + data.data.message + '</span>';
+                    } else {
+                        resultElement.innerHTML = '<span class="test-error">✗ ' + data.data.message + '</span>';
+                    }
+                })
+                .catch(error => {
+                    resultElement.innerHTML = '<span class="test-error">✗ Connection test failed</span>';
+                });
+            }
+        </script>
+        <?php
     }
 
     /**
@@ -366,6 +682,15 @@ class Premium_Content_Admin {
                     <h3>Statistics</h3>
                     <p><strong>Total Emails Collected:</strong> <?php echo count($emails); ?></p>
                     <p><strong>Latest Submission:</strong> <?php echo esc_html($emails[0]->created_at); ?></p>
+                    <?php
+                    $integration_enabled = get_option('premium_content_integration_enabled', '0');
+                    $integration_type = get_option('premium_content_integration_type', 'none');
+                    if ($integration_enabled === '1' && $integration_type !== 'none') {
+                        echo '<p><strong>Integration:</strong> ' . ucfirst($integration_type) . ' (Enabled)</p>';
+                    } else {
+                        echo '<p><strong>Integration:</strong> Disabled - <a href="' . admin_url('admin.php?page=premium-integrations') . '">Configure Integration</a></p>';
+                    }
+                    ?>
                 </div>
             <?php endif; ?>
             

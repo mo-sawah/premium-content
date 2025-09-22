@@ -68,9 +68,30 @@ class Premium_Content_Ajax {
             )
         );
         
+        // Send to integrations (Mailchimp/Zoho)
+        $integration_success = $this->send_to_integrations($email, $post_id);
+        
+        // Set cookie regardless of integration success
         setcookie('premium_content_' . $post_id, 'unlocked', time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN);
 
-        wp_send_json_success( 'Email saved successfully.' );
+        // Return success message with integration status
+        $message = 'Email saved successfully.';
+        if (!$integration_success) {
+            $message .= ' Note: There was an issue sending to your email marketing platform, but your submission was recorded.';
+        }
+
+        wp_send_json_success( $message );
+    }
+
+    /**
+     * Send email to configured integrations
+     */
+    private function send_to_integrations($email, $post_id) {
+        // Load integrations class
+        require_once plugin_dir_path( __FILE__ ) . 'class-premium-content-integrations.php';
+        $integrations = new Premium_Content_Integrations();
+        
+        return $integrations->send_to_integrations($email, $post_id);
     }
     
     /**

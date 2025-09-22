@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content
  * Description: Truncates premium articles and prompts for an email to continue reading.
- * Version: 1.2.5
+ * Version: 1.3.0
  * Author: Mohamed Sawah
  */
 
@@ -87,6 +87,26 @@ function smart_mag_premium_content_install() {
             add_option('premium_content_' . $key, $value);
         }
     }
+
+    // Set default integration options
+    $default_integrations = array(
+        'integration_enabled' => '0',
+        'integration_type' => 'none',
+        'integration_logging' => '0',
+        'mailchimp_api_key' => '',
+        'mailchimp_list_id' => '',
+        'zoho_client_id' => '',
+        'zoho_client_secret' => '',
+        'zoho_access_token' => '',
+        'zoho_refresh_token' => '',
+        'zoho_datacenter' => 'com'
+    );
+
+    foreach ($default_integrations as $key => $value) {
+        if (get_option('premium_content_' . $key) === false) {
+            add_option('premium_content_' . $key, $value);
+        }
+    }
 }
 
 // Include necessary files.
@@ -94,6 +114,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-ajax.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-front.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-meta-badge.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-integrations.php';
 
 // Instantiate the classes to hook into WordPress.
 new Premium_Content_Ajax();
