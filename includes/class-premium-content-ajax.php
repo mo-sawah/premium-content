@@ -24,11 +24,22 @@ class Premium_Content_Ajax {
         $post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
         $checkbox1 = isset( $_POST['checkbox1'] ) ? $_POST['checkbox1'] : '';
         $checkbox2 = isset( $_POST['checkbox2'] ) ? $_POST['checkbox2'] : '';
-        $checkboxes_enabled = isset( $_POST['checkboxes_enabled'] ) ? $_POST['checkboxes_enabled'] : '1';
+        $checkbox1_enabled = isset( $_POST['checkbox1_enabled'] ) ? $_POST['checkbox1_enabled'] : '1';
+        $checkbox2_enabled = isset( $_POST['checkbox2_enabled'] ) ? $_POST['checkbox2_enabled'] : '1';
 
-        // Check if both checkboxes are checked (only if checkboxes are enabled)
-        if ( $checkboxes_enabled === '1' && (empty($checkbox1) || empty($checkbox2)) ) {
-            wp_send_json_error( 'You must agree to both terms to continue reading.' );
+        // Validate each checkbox individually if enabled
+        $validation_errors = array();
+
+        if ( $checkbox1_enabled === '1' && empty($checkbox1) ) {
+            $validation_errors[] = 'You must agree to the first consent requirement.';
+        }
+
+        if ( $checkbox2_enabled === '1' && empty($checkbox2) ) {
+            $validation_errors[] = 'You must agree to the second consent requirement.';
+        }
+
+        if ( !empty($validation_errors) ) {
+            wp_send_json_error( implode(' ', $validation_errors) );
         }
 
         if ( ! is_email( $email ) ) {

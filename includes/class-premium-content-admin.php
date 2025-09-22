@@ -411,9 +411,12 @@ class Premium_Content_Admin {
             $enable_all_posts = isset($_POST['enable_all_posts']) ? '1' : '0';
             update_option('premium_content_enable_all_posts', $enable_all_posts);
 
-            // NEW: Save checkbox setting
-            $enable_checkboxes = isset($_POST['enable_checkboxes']) ? '1' : '0';
-            update_option('premium_content_enable_checkboxes', $enable_checkboxes);
+            // Save individual checkbox settings
+            $enable_checkbox1 = isset($_POST['enable_checkbox1']) ? '1' : '0';
+            update_option('premium_content_enable_checkbox1', $enable_checkbox1);
+
+            $enable_checkbox2 = isset($_POST['enable_checkbox2']) ? '1' : '0';
+            update_option('premium_content_enable_checkbox2', $enable_checkbox2);
 
             // Save text settings
             $text_fields = array(
@@ -479,10 +482,17 @@ class Premium_Content_Admin {
                             </td>
                         </tr>
                         <tr>
-                            <th scope="row"><label for="enable_checkboxes">Enable Consent Checkboxes</label></th>
+                            <th scope="row"><label for="enable_checkbox1">Enable First Consent Checkbox</label></th>
                             <td>
-                                <input type="checkbox" id="enable_checkboxes" name="enable_checkboxes" value="1" <?php checked(get_option('premium_content_enable_checkboxes', '1'), '1'); ?> />
-                                <p class="description">When enabled, users must check both consent boxes before submitting. When disabled, only email is required.</p>
+                                <input type="checkbox" id="enable_checkbox1" name="enable_checkbox1" value="1" <?php checked(get_option('premium_content_enable_checkbox1', '1'), '1'); ?> />
+                                <p class="description">Enable the first consent checkbox (company processing agreement).</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="enable_checkbox2">Enable Second Consent Checkbox</label></th>
+                            <td>
+                                <input type="checkbox" id="enable_checkbox2" name="enable_checkbox2" value="1" <?php checked(get_option('premium_content_enable_checkbox2', '1'), '1'); ?> />
+                                <p class="description">Enable the second consent checkbox (partners processing agreement).</p>
                             </td>
                         </tr>
                     </tbody>

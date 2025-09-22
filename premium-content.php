@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content
  * Description: Truncates premium articles and prompts for an email to continue reading.
- * Version: 1.3.6
+ * Version: 1.3.7
  * Author: Mohamed Sawah
  */
 
@@ -71,7 +71,8 @@ function smart_mag_premium_content_install() {
     // Set default text options
     $default_texts = array(
         'enable_all_posts' => '0',
-        'enable_checkboxes' => '1',
+        'enable_checkbox1' => '1',  // NEW - first checkbox enabled by default
+        'enable_checkbox2' => '1', 
         'main_title' => 'Continue Reading This Article',
         'subtitle' => 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.',
         'email_placeholder' => 'Corporate Email Address',

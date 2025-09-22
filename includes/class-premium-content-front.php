@@ -290,26 +290,39 @@ class Premium_Content_Front {
             $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
             $disclaimer_text = $this->get_premium_content_text('disclaimer_text', 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.');
 
-            // Check if checkboxes are enabled
-            $enable_checkboxes = get_option('premium_content_enable_checkboxes', '1');
+            // Check individual checkbox settings
+            $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
+            $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
             
-            // Generate checkbox HTML only if enabled
+            // Generate checkbox HTML based on individual settings
             $checkbox_html = '';
-            if ($enable_checkboxes === '1') {
-                $checkbox_html = '
-                    <div class="premium-content-checkbox-group">
+            $has_checkboxes = false;
+            
+            if ($enable_checkbox1 === '1' || $enable_checkbox2 === '1') {
+                $checkbox_html .= '<div class="premium-content-checkbox-group">';
+                $has_checkboxes = true;
+                
+                // First checkbox
+                if ($enable_checkbox1 === '1') {
+                    $checkbox_html .= '
                         <div class="premium-content-checkbox-item">
                             <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox1\')"></div>
                             <input type="hidden" name="checkbox1" value="">
                             <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox1_text)) . '</div>
-                        </div>
-                        
+                        </div>';
+                }
+                
+                // Second checkbox
+                if ($enable_checkbox2 === '1') {
+                    $checkbox_html .= '
                         <div class="premium-content-checkbox-item">
                             <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox2\')"></div>
                             <input type="hidden" name="checkbox2" value="">
                             <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox2_text)) . '</div>
-                        </div>
-                    </div>';
+                        </div>';
+                }
+                
+                $checkbox_html .= '</div>';
             }
 
             $form_html = '
@@ -324,7 +337,8 @@ class Premium_Content_Front {
                             
                             <input type="hidden" name="premium_nonce" value="' . esc_attr( $nonce ) . '">
                             <input type="hidden" name="post_id" value="' . esc_attr( $post_id ) . '">
-                            <input type="hidden" name="checkboxes_enabled" value="' . esc_attr($enable_checkboxes) . '">
+                            <input type="hidden" name="checkbox1_enabled" value="' . esc_attr($enable_checkbox1) . '">
+                            <input type="hidden" name="checkbox2_enabled" value="' . esc_attr($enable_checkbox2) . '">
                             <button type="submit" class="premium-content-submit-button"><span>' . esc_html($button_text) . '</span></button>
                         </form>
                         <p class="premium-content-disclaimer">' . wp_kses_post($this->replace_placeholders($disclaimer_text)) . '</p>
@@ -332,7 +346,7 @@ class Premium_Content_Front {
                 </div>
             ';
 
-            // Updated JavaScript to handle optional checkboxes
+            // Updated JavaScript to handle individual checkbox validation
             $script_html = '
                 <script>
                     function togglePremiumCheckbox(checkbox, inputName) {
@@ -355,17 +369,29 @@ class Premium_Content_Front {
                             form.addEventListener("submit", function(e) {
                                 e.preventDefault();
 
-                                var checkboxesEnabled = form.querySelector(\'input[name="checkboxes_enabled"]\').value;
+                                var checkbox1Enabled = form.querySelector(\'input[name="checkbox1_enabled"]\').value;
+                                var checkbox2Enabled = form.querySelector(\'input[name="checkbox2_enabled"]\').value;
                                 
-                                // Only validate checkboxes if they are enabled
-                                if (checkboxesEnabled === "1") {
+                                // Validate only enabled checkboxes
+                                var validationErrors = [];
+                                
+                                if (checkbox1Enabled === "1") {
                                     var checkbox1 = form.querySelector(\'input[name="checkbox1"]\').value;
-                                    var checkbox2 = form.querySelector(\'input[name="checkbox2"]\').value;
-                                    
-                                    if (!checkbox1 || !checkbox2) {
-                                        alert("You must agree to both terms to continue reading.");
-                                        return;
+                                    if (!checkbox1) {
+                                        validationErrors.push("You must agree to the first consent requirement.");
                                     }
+                                }
+                                
+                                if (checkbox2Enabled === "1") {
+                                    var checkbox2 = form.querySelector(\'input[name="checkbox2"]\').value;
+                                    if (!checkbox2) {
+                                        validationErrors.push("You must agree to the second consent requirement.");
+                                    }
+                                }
+                                
+                                if (validationErrors.length > 0) {
+                                    alert(validationErrors.join("\\n"));
+                                    return;
                                 }
 
                                 var formData = new FormData(form);
