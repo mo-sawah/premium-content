@@ -290,6 +290,28 @@ class Premium_Content_Front {
             $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
             $disclaimer_text = $this->get_premium_content_text('disclaimer_text', 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.');
 
+            // Check if checkboxes are enabled
+            $enable_checkboxes = get_option('premium_content_enable_checkboxes', '1');
+            
+            // Generate checkbox HTML only if enabled
+            $checkbox_html = '';
+            if ($enable_checkboxes === '1') {
+                $checkbox_html = '
+                    <div class="premium-content-checkbox-group">
+                        <div class="premium-content-checkbox-item">
+                            <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox1\')"></div>
+                            <input type="hidden" name="checkbox1" value="">
+                            <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox1_text)) . '</div>
+                        </div>
+                        
+                        <div class="premium-content-checkbox-item">
+                            <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox2\')"></div>
+                            <input type="hidden" name="checkbox2" value="">
+                            <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox2_text)) . '</div>
+                        </div>
+                    </div>';
+            }
+
             $form_html = '
                 <div id="premium-content-gate" class="premium-content-gate">
                     <div class="premium-content-form-wrapper">
@@ -298,22 +320,11 @@ class Premium_Content_Front {
                         <form id="premium-content-form" class="premium-content-form">
                             <input type="email" name="premium_email" placeholder="' . esc_attr($email_placeholder) . '" required class="premium-content-email-input">
                             
-                            <div class="premium-content-checkbox-group">
-                                <div class="premium-content-checkbox-item">
-                                    <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox1\')"></div>
-                                    <input type="hidden" name="checkbox1" value="">
-                                    <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox1_text)) . '</div>
-                                </div>
-                                
-                                <div class="premium-content-checkbox-item">
-                                    <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox2\')"></div>
-                                    <input type="hidden" name="checkbox2" value="">
-                                    <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox2_text)) . '</div>
-                                </div>
-                            </div>
+                            ' . $checkbox_html . '
                             
                             <input type="hidden" name="premium_nonce" value="' . esc_attr( $nonce ) . '">
                             <input type="hidden" name="post_id" value="' . esc_attr( $post_id ) . '">
+                            <input type="hidden" name="checkboxes_enabled" value="' . esc_attr($enable_checkboxes) . '">
                             <button type="submit" class="premium-content-submit-button"><span>' . esc_html($button_text) . '</span></button>
                         </form>
                         <p class="premium-content-disclaimer">' . wp_kses_post($this->replace_placeholders($disclaimer_text)) . '</p>
@@ -321,6 +332,7 @@ class Premium_Content_Front {
                 </div>
             ';
 
+            // Updated JavaScript to handle optional checkboxes
             $script_html = '
                 <script>
                     function togglePremiumCheckbox(checkbox, inputName) {
@@ -343,12 +355,17 @@ class Premium_Content_Front {
                             form.addEventListener("submit", function(e) {
                                 e.preventDefault();
 
-                                var checkbox1 = form.querySelector(\'input[name="checkbox1"]\').value;
-                                var checkbox2 = form.querySelector(\'input[name="checkbox2"]\').value;
+                                var checkboxesEnabled = form.querySelector(\'input[name="checkboxes_enabled"]\').value;
                                 
-                                if (!checkbox1 || !checkbox2) {
-                                    alert("You must agree to both terms to continue reading.");
-                                    return;
+                                // Only validate checkboxes if they are enabled
+                                if (checkboxesEnabled === "1") {
+                                    var checkbox1 = form.querySelector(\'input[name="checkbox1"]\').value;
+                                    var checkbox2 = form.querySelector(\'input[name="checkbox2"]\').value;
+                                    
+                                    if (!checkbox1 || !checkbox2) {
+                                        alert("You must agree to both terms to continue reading.");
+                                        return;
+                                    }
                                 }
 
                                 var formData = new FormData(form);

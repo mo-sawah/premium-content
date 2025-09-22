@@ -24,6 +24,12 @@ class Premium_Content_Ajax {
         $post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
         $checkbox1 = isset( $_POST['checkbox1'] ) ? $_POST['checkbox1'] : '';
         $checkbox2 = isset( $_POST['checkbox2'] ) ? $_POST['checkbox2'] : '';
+        $checkboxes_enabled = isset( $_POST['checkboxes_enabled'] ) ? $_POST['checkboxes_enabled'] : '1';
+
+        // Check if both checkboxes are checked (only if checkboxes are enabled)
+        if ( $checkboxes_enabled === '1' && (empty($checkbox1) || empty($checkbox2)) ) {
+            wp_send_json_error( 'You must agree to both terms to continue reading.' );
+        }
 
         if ( ! is_email( $email ) ) {
             wp_send_json_error( 'Invalid email address.' );

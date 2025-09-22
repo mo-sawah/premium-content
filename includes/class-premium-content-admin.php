@@ -411,6 +411,10 @@ class Premium_Content_Admin {
             $enable_all_posts = isset($_POST['enable_all_posts']) ? '1' : '0';
             update_option('premium_content_enable_all_posts', $enable_all_posts);
 
+            // NEW: Save checkbox setting
+            $enable_checkboxes = isset($_POST['enable_checkboxes']) ? '1' : '0';
+            update_option('premium_content_enable_checkboxes', $enable_checkboxes);
+
             // Save text settings
             $text_fields = array(
                 'main_title' => 'Continue Reading This Article',
@@ -472,6 +476,13 @@ class Premium_Content_Admin {
                             <td>
                                 <input type="checkbox" id="enable_all_posts" name="enable_all_posts" value="1" <?php checked($enable_all_posts, '1'); ?> />
                                 <p class="description">When enabled, the paywall will appear on ALL posts (old and new) by default, not just those tagged with "premium". Posts tagged with "premium" will still work as before.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="enable_checkboxes">Enable Consent Checkboxes</label></th>
+                            <td>
+                                <input type="checkbox" id="enable_checkboxes" name="enable_checkboxes" value="1" <?php checked(get_option('premium_content_enable_checkboxes', '1'), '1'); ?> />
+                                <p class="description">When enabled, users must check both consent boxes before submitting. When disabled, only email is required.</p>
                             </td>
                         </tr>
                     </tbody>
