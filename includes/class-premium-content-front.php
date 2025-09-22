@@ -122,7 +122,7 @@ class Premium_Content_Front {
         }
 
         .premium-content-custom-checkbox.checked::after {
-            content: 'âœ"';
+            content: '✓';
             position: absolute;
             color: white;
             font-size: 14px;
