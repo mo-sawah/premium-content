@@ -395,20 +395,28 @@ class Premium_Content_Front {
                         var customCheckboxes = premiumGate.querySelectorAll(".premium-content-custom-checkbox");
                         customCheckboxes.forEach(function(customBox) {
                             var target = customBox.getAttribute("data-target");
-                            var hiddenCheckbox = premiumGate.querySelector(\'input[name="\' + target + \'"]\');
                             
-                            // Only set up click handler if the hidden checkbox actually exists
-                            if (hiddenCheckbox) {
-                                customBox.addEventListener("click", function() {
-                                    customBox.classList.toggle("checked");
+                            customBox.addEventListener("click", function() {
+                                customBox.classList.toggle("checked");
+                                
+                                // Try to find the hidden checkbox (it might be created dynamically by CF7)
+                                var hiddenCheckbox = premiumGate.querySelector(\'input[name="\' + target + \'"]\');
+                                if (hiddenCheckbox) {
                                     hiddenCheckbox.checked = customBox.classList.contains("checked");
                                     if (customBox.classList.contains("checked")) {
                                         hiddenCheckbox.value = "1";
                                     } else {
                                         hiddenCheckbox.value = "";
                                     }
-                                });
-                            }
+                                } else {
+                                    // If hidden checkbox doesn\'t exist yet, create it temporarily for form submission
+                                    var tempInput = document.createElement("input");
+                                    tempInput.type = "hidden";
+                                    tempInput.name = target;
+                                    tempInput.value = customBox.classList.contains("checked") ? "1" : "";
+                                    customBox.parentNode.appendChild(tempInput);
+                                }
+                            });
                         });
                     }
                     

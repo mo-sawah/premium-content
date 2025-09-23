@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content
  * Description: Truncates premium articles and prompts for an email to continue reading.
- * Version: 1.4.6
+ * Version: 1.4.7
  * Author: Mohamed Sawah
  */
 
