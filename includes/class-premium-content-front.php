@@ -324,7 +324,6 @@ class Premium_Content_Front {
             return '<p style="color: red; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">Contact Form 7 plugin is not active. Please install and activate Contact Form 7.</p>';
         }
 
-        // Check if form exists
         $contact_form = wpcf7_contact_form($cf7_form_id);
         if (!$contact_form || !$contact_form->id()) {
             return '<p style="color: red; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">Contact Form 7 form with ID ' . esc_html($cf7_form_id) . ' not found. Please check your form ID in the settings.</p>';
@@ -341,24 +340,19 @@ class Premium_Content_Front {
             </div>
         ';
 
-        // NEW: Get checkbox visibility settings
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
         $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
+        $site_name = get_bloginfo('name'); // Get site name for JS
 
-        // Simplified JavaScript - handle custom checkboxes and CF7 form submission success
         $script_html = '
             <script>
                 function toggleCustomCheckbox(customBox, targetName) {
                     customBox.classList.toggle("checked");
-                    var hiddenCheckbox = customBox.parentNode.querySelector(\'input[name="\' + targetName + \'"]\');
+                    // FIX 1: Correctly select the CF7 checkbox input, which has "[]" in its name
+                    var hiddenCheckbox = customBox.closest(".premium-content-checkbox-item").querySelector(\'input[name="\' + targetName + \'[]"]\');
                     if (hiddenCheckbox) {
-                        if (customBox.classList.contains("checked")) {
-                            hiddenCheckbox.checked = true;
-                            hiddenCheckbox.value = "1";
-                        } else {
-                            hiddenCheckbox.checked = false;
-                            hiddenCheckbox.value = "";
-                        }
+                        // Just toggle the checked property. CF7 will handle the rest.
+                        hiddenCheckbox.checked = customBox.classList.contains("checked");
                     }
                 }
 
@@ -369,7 +363,14 @@ class Premium_Content_Front {
                     
                     if (!premiumGate) return;
                     
-                    // NEW: Handle showing/hiding checkboxes based on settings
+                    // FIX 2: Replace [site_name] placeholder using JavaScript
+                    var siteName = "' . esc_js($site_name) . '";
+                    var textElements = premiumGate.querySelectorAll(".premium-content-checkbox-text, .premium-content-disclaimer");
+                    textElements.forEach(function(el) {
+                        el.innerHTML = el.innerHTML.replace(/\[site_name\]/g, siteName);
+                    });
+
+                    // Handle showing/hiding checkboxes based on settings
                     var enableCheckbox1 = "' . $enable_checkbox1 . '";
                     var enableCheckbox2 = "' . $enable_checkbox2 . '";
                     
@@ -377,29 +378,34 @@ class Premium_Content_Front {
                     var checkbox2Wrapper = premiumGate.querySelector(".premium-checkbox2-wrapper");
 
                     if (checkbox1Wrapper && enableCheckbox1 !== "1") {
-                        checkbox1Wrapper.classList.add("disabled");
+                        checkbox1Wrapper.style.display = "none";
                     }
                     if (checkbox2Wrapper && enableCheckbox2 !== "1") {
-                        checkbox2Wrapper.classList.add("disabled");
+                        checkbox2Wrapper.style.display = "none";
                     }
-                    // END NEW
 
-                    // Set post ID for the hidden field
                     var postIdField = premiumGate.querySelector(\'input[name="post_id"]\');
                     if (postIdField) {
                         postIdField.value = ' . $post_id . ';
                     }
 
-                    // Setup custom checkbox handlers
                     var customCheckboxes = premiumGate.querySelectorAll(".premium-content-custom-checkbox");
                     customCheckboxes.forEach(function(customBox) {
                         var target = customBox.getAttribute("data-target");
                         customBox.addEventListener("click", function() {
                             toggleCustomCheckbox(customBox, target);
                         });
+                        
+                        // Also make the text clickable
+                        var textDiv = customBox.closest(".premium-content-checkbox-item").querySelector(".premium-content-checkbox-text");
+                        if (textDiv) {
+                            textDiv.style.cursor = "pointer";
+                            textDiv.addEventListener("click", function() {
+                                toggleCustomCheckbox(customBox, target);
+                            });
+                        }
                     });
 
-                    // Handle CF7 form submission success
                     document.addEventListener("wpcf7mailsent", function(event) {
                         if (event.detail.contactFormId == ' . intval($cf7_form_id) . ') {
                             if (truncatedContent) truncatedContent.style.display = "none";
