@@ -332,105 +332,137 @@ class Premium_Content_Front {
 
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
         $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
+        $email_placeholder = $this->get_premium_content_text('email_placeholder', 'Corporate Email Address');
+        $button_text = $this->get_premium_content_text('button_text', 'Continue Reading');
         $checkbox1_text = $this->get_premium_content_text('checkbox1_text', 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.');
         $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
+        
+        // Generate checkbox HTML using NATIVE FORM LOGIC (same as working native form)
+        $checkbox_html = '';
+        if ($enable_checkbox1 === '1' || $enable_checkbox2 === '1') {
+            $checkbox_html .= '<div class="premium-content-checkbox-group">';
+            
+            // First checkbox
+            if ($enable_checkbox1 === '1') {
+                $checkbox_html .= '
+                    <div class="premium-content-checkbox-item">
+                        <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox1\')"></div>
+                        <input type="hidden" name="checkbox1" value="">
+                        <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox1_text)) . '</div>
+                    </div>';
+            }
+            
+            // Second checkbox
+            if ($enable_checkbox2 === '1') {
+                $checkbox_html .= '
+                    <div class="premium-content-checkbox-item">
+                        <div class="premium-content-custom-checkbox" onclick="togglePremiumCheckbox(this, \'checkbox2\')"></div>
+                        <input type="hidden" name="checkbox2" value="">
+                        <div class="premium-content-checkbox-text">' . wp_kses_post($this->replace_placeholders($checkbox2_text)) . '</div>
+                    </div>';
+            }
+            
+            $checkbox_html .= '</div>';
+        }
         
         $form_html = '
             <div id="premium-content-gate" class="premium-content-gate">
                 <div class="premium-content-form-wrapper">
                     <h2 class="premium-content-title">' . esc_html($main_title) . '</h2>
                     <p class="premium-content-subtitle">' . esc_html($subtitle) . '</p>
-                    ' . do_shortcode('[contact-form-7 id="' . intval($cf7_form_id) . '"]') . '
+                    <form id="premium-content-form-cf7" class="premium-content-form" onsubmit="return handleCF7Submit(event);">
+                        <input type="email" name="premium_email" placeholder="' . esc_attr($email_placeholder) . '" required class="premium-content-email-input">
+                        
+                        ' . $checkbox_html . '
+                        
+                        <input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">
+                        <input type="hidden" name="checkbox1_enabled" value="' . esc_attr($enable_checkbox1) . '">
+                        <input type="hidden" name="checkbox2_enabled" value="' . esc_attr($enable_checkbox2) . '">
+                        <button type="submit" class="premium-content-submit-button"><span>' . esc_html($button_text) . '</span></button>
+                    </form>
                     <p class="premium-content-disclaimer">' . wp_kses_post($this->replace_placeholders($disclaimer_text)) . '</p>
                 </div>
             </div>
         ';
 
-        // Add JavaScript for CF7 form handling
+        // Use NATIVE FORM JAVASCRIPT (same as working native form)
         $script_html = '
             <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    var premiumGate = document.getElementById("premium-content-gate");
-                    var truncatedContent = document.getElementById("truncated-content");
-                    var fullContent = document.getElementById("full-content");
-                    
-                    if (!premiumGate) return;
-                    
-                    // Set post ID for the hidden field
-                    var postIdField = premiumGate.querySelector(\'input[name="post_id"]\');
-                    if (postIdField) {
-                        postIdField.value = ' . $post_id . ';
+                function togglePremiumCheckbox(checkbox, inputName) {
+                    checkbox.classList.toggle("checked");
+                    const hiddenInput = checkbox.parentNode.querySelector(\'input[name="\' + inputName + \'"]\');
+                    if (checkbox.classList.contains("checked")) {
+                        hiddenInput.value = "1";
+                    } else {
+                        hiddenInput.value = "";
                     }
+                }
 
-                    // Handle checkbox visibility based on settings
-                    var checkbox1Enabled = ' . ($enable_checkbox1 === '1' ? 'true' : 'false') . ';
-                    var checkbox2Enabled = ' . ($enable_checkbox2 === '1' ? 'true' : 'false') . ';
+                function handleCF7Submit(e) {
+                    e.preventDefault();
                     
-                    var checkbox1Wrapper = premiumGate.querySelector(".premium-checkbox1-wrapper");
-                    var checkbox2Wrapper = premiumGate.querySelector(".premium-checkbox2-wrapper");
+                    var form = document.getElementById("premium-content-form-cf7");
+                    var checkbox1Enabled = form.querySelector(\'input[name="checkbox1_enabled"]\').value;
+                    var checkbox2Enabled = form.querySelector(\'input[name="checkbox2_enabled"]\').value;
                     
-                    if (!checkbox1Enabled && checkbox1Wrapper) {
-                        checkbox1Wrapper.classList.add("disabled");
-                    }
-                    if (!checkbox2Enabled && checkbox2Wrapper) {
-                        checkbox2Wrapper.classList.add("disabled");
-                    }
-
-                    // Replace placeholder text
-                    var checkboxTexts = premiumGate.querySelectorAll(".premium-content-checkbox-text");
-                    checkboxTexts.forEach(function(element, index) {
-                        var text = element.innerHTML;
-                        if (index === 0 && checkbox1Enabled) {
-                            text = ' . json_encode(wp_kses_post($this->replace_placeholders($checkbox1_text))) . ';
-                        } else if (index === 1 && checkbox2Enabled) {
-                            text = ' . json_encode(wp_kses_post($this->replace_placeholders($checkbox2_text))) . ';
-                        } else if (!checkbox1Enabled && index === 0 && checkbox2Enabled) {
-                            text = ' . json_encode(wp_kses_post($this->replace_placeholders($checkbox2_text))) . ';
+                    // Use NATIVE VALIDATION LOGIC
+                    var validationErrors = [];
+                    
+                    if (checkbox1Enabled === "1") {
+                        var checkbox1 = form.querySelector(\'input[name="checkbox1"]\');
+                        if (!checkbox1 || !checkbox1.value) {
+                            validationErrors.push("You must agree to the first consent requirement.");
                         }
-                        element.innerHTML = text;
-                    });
-
-                    // Custom checkbox handling
-                    function setupCustomCheckboxes() {
-                        var customCheckboxes = premiumGate.querySelectorAll(".premium-content-custom-checkbox");
-                        customCheckboxes.forEach(function(customBox) {
-                            var target = customBox.getAttribute("data-target");
-                            
-                            customBox.addEventListener("click", function() {
-                                customBox.classList.toggle("checked");
-                                
-                                // Try to find the hidden checkbox (it might be created dynamically by CF7)
-                                var hiddenCheckbox = premiumGate.querySelector(\'input[name="\' + target + \'"]\');
-                                if (hiddenCheckbox) {
-                                    hiddenCheckbox.checked = customBox.classList.contains("checked");
-                                    if (customBox.classList.contains("checked")) {
-                                        hiddenCheckbox.value = "1";
-                                    } else {
-                                        hiddenCheckbox.value = "";
-                                    }
-                                } else {
-                                    // If hidden checkbox doesn\'t exist yet, create it temporarily for form submission
-                                    var tempInput = document.createElement("input");
-                                    tempInput.type = "hidden";
-                                    tempInput.name = target;
-                                    tempInput.value = customBox.classList.contains("checked") ? "1" : "";
-                                    customBox.parentNode.appendChild(tempInput);
-                                }
-                            });
-                        });
                     }
                     
-                    setupCustomCheckboxes();
-
-                    // Handle CF7 form submission success
-                    document.addEventListener("wpcf7mailsent", function(event) {
-                        if (event.detail.contactFormId == ' . intval($cf7_form_id) . ') {
-                            if (truncatedContent) truncatedContent.style.display = "none";
-                            if (premiumGate) premiumGate.style.display = "none";
-                            if (fullContent) fullContent.style.display = "block";
+                    if (checkbox2Enabled === "1") {
+                        var checkbox2 = form.querySelector(\'input[name="checkbox2"]\');
+                        if (!checkbox2 || !checkbox2.value) {
+                            validationErrors.push("You must agree to the second consent requirement.");
                         }
+                    }
+                    
+                    if (validationErrors.length > 0) {
+                        alert(validationErrors.join("\\n"));
+                        return false;
+                    }
+
+                    // Validate corporate email
+                    var email = form.querySelector(\'input[name="premium_email"]\').value;
+                    var personalDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "aol.com", "icloud.com", "live.com", "msn.com", "ymail.com", "rocketmail.com", "mail.com"];
+                    var emailDomain = email.substring(email.lastIndexOf("@") + 1).toLowerCase();
+                    
+                    if (personalDomains.includes(emailDomain)) {
+                        alert("Please use a corporate email address. Personal email addresses (Gmail, Yahoo, Outlook, etc.) are not accepted.");
+                        return false;
+                    }
+
+                    // Use native AJAX submission
+                    var formData = new FormData(form);
+                    formData.append("action", "smart_mag_premium_content");
+                    formData.append("premium_nonce", "' . wp_create_nonce('premium_email_nonce') . '");
+
+                    fetch("' . esc_url(admin_url('admin-ajax.php')) . '", {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById("truncated-content").style.display = "none";
+                            document.getElementById("premium-content-gate").style.display = "none";
+                            document.getElementById("full-content").style.display = "block";
+                        } else {
+                            alert(data.data || "An error occurred. Please try again.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        alert("An error occurred. Please try again.");
                     });
-                });
+                    
+                    return false;
+                }
             </script>
         ';
 
