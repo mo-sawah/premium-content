@@ -25,7 +25,7 @@ class Premium_Content_CF7 {
         $cf7_form_id = get_option('premium_content_cf7_form_id', '');
         
         // Only process if we're in CF7 mode and this is our premium form
-        if ($form_mode !== 'cf7' || $contact_form->id() != $cf7_form_id) {
+        if ($form_mode !== 'cf7' || empty($cf7_form_id) || $contact_form->id() != intval($cf7_form_id)) {
             return;
         }
 

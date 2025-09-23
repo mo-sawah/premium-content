@@ -316,8 +316,18 @@ class Premium_Content_Front {
     private function generate_cf7_form($post_id, $main_title, $subtitle, $disclaimer_text) {
         $cf7_form_id = get_option('premium_content_cf7_form_id', '');
         
-        if (empty($cf7_form_id) || !function_exists('wpcf7_contact_form')) {
-            return '<p style="color: red;">Contact Form 7 is not properly configured. Please check your settings.</p>';
+        if (empty($cf7_form_id)) {
+            return '<p style="color: red; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">Contact Form 7 ID is not configured. Please check your settings.</p>';
+        }
+
+        if (!function_exists('wpcf7_contact_form')) {
+            return '<p style="color: red; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">Contact Form 7 plugin is not active. Please install and activate Contact Form 7.</p>';
+        }
+
+        // Check if form exists
+        $contact_form = wpcf7_contact_form($cf7_form_id);
+        if (!$contact_form || !$contact_form->id()) {
+            return '<p style="color: red; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">Contact Form 7 form with ID ' . esc_html($cf7_form_id) . ' not found. Please check your form ID in the settings.</p>';
         }
 
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
@@ -330,7 +340,7 @@ class Premium_Content_Front {
                 <div class="premium-content-form-wrapper">
                     <h2 class="premium-content-title">' . esc_html($main_title) . '</h2>
                     <p class="premium-content-subtitle">' . esc_html($subtitle) . '</p>
-                    ' . do_shortcode('[contact-form-7 id="' . $cf7_form_id . '"]') . '
+                    ' . do_shortcode('[contact-form-7 id="' . intval($cf7_form_id) . '"]') . '
                     <p class="premium-content-disclaimer">' . wp_kses_post($this->replace_placeholders($disclaimer_text)) . '</p>
                 </div>
             </div>
@@ -343,6 +353,8 @@ class Premium_Content_Front {
                     var premiumGate = document.getElementById("premium-content-gate");
                     var truncatedContent = document.getElementById("truncated-content");
                     var fullContent = document.getElementById("full-content");
+                    
+                    if (!premiumGate) return;
                     
                     // Set post ID for the hidden field
                     var postIdField = premiumGate.querySelector(\'input[name="post_id"]\');
@@ -368,9 +380,11 @@ class Premium_Content_Front {
                     var checkboxTexts = premiumGate.querySelectorAll(".premium-content-checkbox-text");
                     checkboxTexts.forEach(function(element, index) {
                         var text = element.innerHTML;
-                        if (index === 0) {
+                        if (index === 0 && checkbox1Enabled) {
                             text = ' . json_encode(wp_kses_post($this->replace_placeholders($checkbox1_text))) . ';
-                        } else if (index === 1) {
+                        } else if (index === 1 && checkbox2Enabled) {
+                            text = ' . json_encode(wp_kses_post($this->replace_placeholders($checkbox2_text))) . ';
+                        } else if (!checkbox1Enabled && index === 0 && checkbox2Enabled) {
                             text = ' . json_encode(wp_kses_post($this->replace_placeholders($checkbox2_text))) . ';
                         }
                         element.innerHTML = text;
@@ -388,7 +402,7 @@ class Premium_Content_Front {
                                 if (hiddenCheckbox) {
                                     hiddenCheckbox.checked = customBox.classList.contains("checked");
                                     if (customBox.classList.contains("checked")) {
-                                        hiddenCheckbox.value = customBox.classList.contains("checked") ? "1" : "";
+                                        hiddenCheckbox.value = "1";
                                     } else {
                                         hiddenCheckbox.value = "";
                                     }
@@ -401,10 +415,10 @@ class Premium_Content_Front {
 
                     // Handle CF7 form submission success
                     document.addEventListener("wpcf7mailsent", function(event) {
-                        if (event.detail.contactFormId == ' . $cf7_form_id . ') {
-                            truncatedContent.style.display = "none";
-                            premiumGate.style.display = "none";
-                            fullContent.style.display = "block";
+                        if (event.detail.contactFormId == ' . intval($cf7_form_id) . ') {
+                            if (truncatedContent) truncatedContent.style.display = "none";
+                            if (premiumGate) premiumGate.style.display = "none";
+                            if (fullContent) fullContent.style.display = "block";
                         }
                     });
                 });

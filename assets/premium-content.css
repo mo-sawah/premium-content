@@ -63,10 +63,10 @@
   background: #333 !important; /* Darkens the icon box slightly on hover */
 }
 
-/* --- Contact Form 7 Specific Styles --- */
+/* --- Contact Form 7 Specific Styles - ONLY for Premium Content Gate --- */
 
-/* Hide the actual CF7 checkboxes - we use custom ones */
-.premium-hidden-checkbox {
+/* Target ONLY CF7 forms within the premium content gate */
+#premium-content-gate .wpcf7 .premium-hidden-checkbox {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -74,8 +74,8 @@
   left: -9999px !important;
 }
 
-/* Override CF7 default styling to match our premium form */
-.wpcf7 .premium-content-email-input {
+/* Override CF7 default styling ONLY within premium content gate */
+#premium-content-gate .wpcf7 .premium-content-email-input {
   width: 100% !important;
   padding: 15px 5px !important;
   border: none !important;
@@ -89,17 +89,17 @@
   font-family: inherit !important;
 }
 
-.wpcf7 .premium-content-email-input:focus {
+#premium-content-gate .wpcf7 .premium-content-email-input:focus {
   outline: none !important;
   border-bottom-color: #667eea !important;
 }
 
-.wpcf7 .premium-content-email-input::placeholder {
+#premium-content-gate .wpcf7 .premium-content-email-input::placeholder {
   color: #999 !important;
 }
 
-/* CF7 Submit button styling */
-.wpcf7 .premium-content-submit-button {
+/* CF7 Submit button styling - ONLY in premium content gate */
+#premium-content-gate .wpcf7 .premium-content-submit-button {
   background: #2c3e50 !important;
   color: white !important;
   padding: 10px 40px !important;
@@ -126,7 +126,7 @@
   height: 56px !important;
 }
 
-.wpcf7 .premium-content-submit-button::before {
+#premium-content-gate .wpcf7 .premium-content-submit-button::before {
   content: "" !important;
   position: absolute !important;
   top: 0 !important;
@@ -138,11 +138,14 @@
   z-index: 1 !important;
 }
 
-.wpcf7 .premium-content-submit-button:hover::before {
+#premium-content-gate .wpcf7 .premium-content-submit-button:hover::before {
   left: 0 !important;
 }
 
-.wpcf7 .premium-content-submit-button input[type="submit"] {
+#premium-content-gate
+  .wpcf7
+  .premium-content-submit-button
+  input[type="submit"] {
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
@@ -157,18 +160,18 @@
   cursor: pointer !important;
 }
 
-/* CF7 checkbox group styling */
-.wpcf7 .premium-content-checkbox-group {
+/* CF7 checkbox group styling - ONLY in premium content gate */
+#premium-content-gate .wpcf7 .premium-content-checkbox-group {
   margin-bottom: 20px !important;
 }
 
-.wpcf7 .premium-content-checkbox-item {
+#premium-content-gate .wpcf7 .premium-content-checkbox-item {
   display: flex !important;
   align-items: flex-start !important;
   margin-bottom: 15px !important;
 }
 
-.wpcf7 .premium-content-custom-checkbox {
+#premium-content-gate .wpcf7 .premium-content-custom-checkbox {
   width: 20px !important;
   height: 20px !important;
   border: 2px solid #ddd !important;
@@ -181,12 +184,12 @@
   transition: all 0.3s ease !important;
 }
 
-.wpcf7 .premium-content-custom-checkbox.checked {
+#premium-content-gate .wpcf7 .premium-content-custom-checkbox.checked {
   background: #667eea !important;
   border-color: #667eea !important;
 }
 
-.wpcf7 .premium-content-custom-checkbox.checked::after {
+#premium-content-gate .wpcf7 .premium-content-custom-checkbox.checked::after {
   content: "✓" !important;
   position: absolute !important;
   color: white !important;
@@ -195,62 +198,64 @@
   left: 3px !important;
 }
 
-.wpcf7 .premium-content-checkbox-text {
+#premium-content-gate .wpcf7 .premium-content-checkbox-text {
   font-size: 14px !important;
   color: #666 !important;
   cursor: pointer !important;
 }
 
-.wpcf7 .premium-content-checkbox-text a {
+#premium-content-gate .wpcf7 .premium-content-checkbox-text a {
   color: #667eea !important;
   text-decoration: none !important;
 }
 
-.wpcf7 .premium-content-checkbox-text a:hover {
+#premium-content-gate .wpcf7 .premium-content-checkbox-text a:hover {
   text-decoration: underline !important;
 }
 
-/* Hide/show checkboxes based on admin settings */
-.premium-checkbox1-wrapper.disabled,
-.premium-checkbox2-wrapper.disabled {
+/* Hide/show checkboxes based on admin settings - ONLY in premium content gate */
+#premium-content-gate .premium-checkbox1-wrapper.disabled,
+#premium-content-gate .premium-checkbox2-wrapper.disabled {
   display: none !important;
 }
 
-/* Remove CF7 default form styling that might interfere */
-.wpcf7-form p {
+/* Remove CF7 default form styling that might interfere - ONLY in premium content gate */
+#premium-content-gate .wpcf7-form p {
   margin: 0 !important;
 }
 
-.wpcf7-form .wpcf7-form-control-wrap {
+#premium-content-gate .wpcf7-form .wpcf7-form-control-wrap {
   position: static !important;
 }
 
-.wpcf7-form .wpcf7-not-valid-tip {
+#premium-content-gate .wpcf7-form .wpcf7-not-valid-tip {
   color: #dc3232 !important;
   font-size: 12px !important;
   margin-top: 5px !important;
   display: block !important;
 }
 
-.wpcf7-form .wpcf7-response-output {
+#premium-content-gate .wpcf7-form .wpcf7-response-output {
   margin: 15px 0 !important;
   padding: 10px !important;
   border-radius: 4px !important;
 }
 
-.wpcf7-form .wpcf7-response-output.wpcf7-mail-sent-ok {
+#premium-content-gate .wpcf7-form .wpcf7-response-output.wpcf7-mail-sent-ok {
   background: #d4edda !important;
   border: 1px solid #c3e6cb !important;
   color: #155724 !important;
 }
 
-.wpcf7-form .wpcf7-response-output.wpcf7-validation-errors {
+#premium-content-gate
+  .wpcf7-form
+  .wpcf7-response-output.wpcf7-validation-errors {
   background: #f8d7da !important;
   border: 1px solid #f5c6cb !important;
   color: #721c24 !important;
 }
 
-/* Ensure proper spacing in CF7 mode */
-.premium-content-gate .wpcf7-form {
+/* Ensure proper spacing in CF7 mode - ONLY in premium content gate */
+#premium-content-gate .wpcf7-form {
   margin-bottom: 25px !important;
 }
