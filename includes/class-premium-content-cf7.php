@@ -109,22 +109,44 @@ class Premium_Content_CF7 {
             return $result;
         }
 
+        $cf7_form_id = get_option('premium_content_cf7_form_id', '');
+        
+        // Only validate our specific premium form
+        $submission = WPCF7_Submission::get_instance();
+        if (!$submission) {
+            return $result;
+        }
+        
+        $contact_form = $submission->get_contact_form();
+        if (!$contact_form || $contact_form->id() != intval($cf7_form_id)) {
+            return $result;
+        }
+
         $name = $tag->name;
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
         $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
         
         if ($name === 'checkbox1' && $enable_checkbox1 === '1') {
-            $value = isset($_POST[$name]) ? $_POST[$name] : '';
+            $value = isset($_POST[$name]) ? $_POST[$name] : array();
             if (empty($value)) {
                 $result->invalidate($tag, 'You must agree to the first consent requirement.');
             }
         }
         
         if ($name === 'checkbox2' && $enable_checkbox2 === '1') {
-            $value = isset($_POST[$name]) ? $_POST[$name] : '';
+            $value = isset($_POST[$name]) ? $_POST[$name] : array();
             if (empty($value)) {
                 $result->invalidate($tag, 'You must agree to the second consent requirement.');
             }
+        }
+
+        // If checkbox is disabled, don't validate it - mark as valid
+        if ($name === 'checkbox1' && $enable_checkbox1 === '0') {
+            return $result; // Don't invalidate if disabled
+        }
+        
+        if ($name === 'checkbox2' && $enable_checkbox2 === '0') {
+            return $result; // Don't invalidate if disabled
         }
 
         return $result;
