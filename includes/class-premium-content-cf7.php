@@ -126,6 +126,16 @@ class Premium_Content_CF7 {
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
         $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
         
+        // IMPORTANT: Skip validation entirely for disabled checkboxes
+        if ($name === 'checkbox1' && $enable_checkbox1 === '0') {
+            return $result; // Don't validate disabled checkbox1
+        }
+        
+        if ($name === 'checkbox2' && $enable_checkbox2 === '0') {
+            return $result; // Don't validate disabled checkbox2
+        }
+        
+        // Only validate enabled checkboxes
         if ($name === 'checkbox1' && $enable_checkbox1 === '1') {
             $value = isset($_POST[$name]) ? $_POST[$name] : array();
             if (empty($value)) {
@@ -138,15 +148,6 @@ class Premium_Content_CF7 {
             if (empty($value)) {
                 $result->invalidate($tag, 'You must agree to the second consent requirement.');
             }
-        }
-
-        // If checkbox is disabled, don't validate it - mark as valid
-        if ($name === 'checkbox1' && $enable_checkbox1 === '0') {
-            return $result; // Don't invalidate if disabled
-        }
-        
-        if ($name === 'checkbox2' && $enable_checkbox2 === '0') {
-            return $result; // Don't invalidate if disabled
         }
 
         return $result;
