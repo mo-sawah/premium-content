@@ -341,9 +341,23 @@ class Premium_Content_Front {
             </div>
         ';
 
-        // Simplified JavaScript - just handle CF7 form submission success
+        // Simplified JavaScript - handle custom checkboxes and CF7 form submission success
         $script_html = '
             <script>
+                function toggleCustomCheckbox(customBox, targetName) {
+                    customBox.classList.toggle("checked");
+                    var hiddenCheckbox = customBox.parentNode.querySelector(\'input[name="\' + targetName + \'"]\');
+                    if (hiddenCheckbox) {
+                        if (customBox.classList.contains("checked")) {
+                            hiddenCheckbox.checked = true;
+                            hiddenCheckbox.value = "1";
+                        } else {
+                            hiddenCheckbox.checked = false;
+                            hiddenCheckbox.value = "";
+                        }
+                    }
+                }
+
                 document.addEventListener("DOMContentLoaded", function() {
                     var premiumGate = document.getElementById("premium-content-gate");
                     var truncatedContent = document.getElementById("truncated-content");
@@ -356,6 +370,15 @@ class Premium_Content_Front {
                     if (postIdField) {
                         postIdField.value = ' . $post_id . ';
                     }
+
+                    // Setup custom checkbox handlers
+                    var customCheckboxes = premiumGate.querySelectorAll(".premium-content-custom-checkbox");
+                    customCheckboxes.forEach(function(customBox) {
+                        var target = customBox.getAttribute("data-target");
+                        customBox.addEventListener("click", function() {
+                            toggleCustomCheckbox(customBox, target);
+                        });
+                    });
 
                     // Handle CF7 form submission success
                     document.addEventListener("wpcf7mailsent", function(event) {
