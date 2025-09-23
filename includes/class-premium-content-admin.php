@@ -440,7 +440,7 @@ class Premium_Content_Admin {
 
             foreach ($text_fields as $field => $default) {
                 if (isset($_POST[$field])) {
-                    $value = $_POST[$field];
+                    $value = wp_unslash($_POST[$field]);
                     update_option('premium_content_' . $field, wp_kses_post($value));
                 }
             }
