@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content
  * Description: Truncates premium articles and prompts for an email to continue reading.
- * Version: 1.3.8
+ * Version: 1.3.9
  * Author: Mohamed Sawah
  */
 
@@ -71,6 +71,8 @@ function smart_mag_premium_content_install() {
     // Set default text options
     $default_texts = array(
         'enable_all_posts' => '0',
+        'form_mode' => 'native', // NEW - form mode setting
+        'cf7_form_id' => '', // NEW - Contact Form 7 form ID
         'enable_checkbox1' => '1',  // NEW - first checkbox enabled by default
         'enable_checkbox2' => '1', 
         'main_title' => 'Continue Reading This Article',
@@ -117,9 +119,11 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-front
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-meta-badge.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-integrations.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-cf7.php'; // NEW
 
 // Instantiate the classes to hook into WordPress.
 new Premium_Content_Ajax();
 new Premium_Content_Front();
 new Premium_Content_Admin();
 new Premium_Content_Meta_Badge();
+new Premium_Content_CF7(); // NEW

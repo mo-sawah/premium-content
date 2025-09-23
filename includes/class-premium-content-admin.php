@@ -482,6 +482,28 @@ class Premium_Content_Admin {
                             </td>
                         </tr>
                         <tr>
+                            <th scope="row"><label for="form_mode">Form Mode</label></th>
+                            <td>
+                                <select id="form_mode" name="form_mode">
+                                    <option value="native" <?php selected($form_mode, 'native'); ?>>Native Form (Built-in)</option>
+                                    <option value="cf7" <?php selected($form_mode, 'cf7'); ?>>Contact Form 7</option>
+                                </select>
+                                <p class="description">Choose between the built-in form or Contact Form 7. The styling will remain exactly the same.</p>
+                            </td>
+                        </tr>
+                        <tr id="cf7-form-id-row" style="display: <?php echo $form_mode === 'cf7' ? 'table-row' : 'none'; ?>;">
+                            <th scope="row"><label for="cf7_form_id">Contact Form 7 ID</label></th>
+                            <td>
+                                <input type="text" id="cf7_form_id" name="cf7_form_id" value="<?php echo esc_attr($cf7_form_id); ?>" class="regular-text" />
+                                <p class="description">Enter the ID of your Contact Form 7 form. <a href="<?php echo admin_url('admin.php?page=wpcf7'); ?>" target="_blank">Manage Contact Forms</a></p>
+                                <?php if ($form_mode === 'cf7' && !empty($cf7_form_id)): ?>
+                                    <p class="description"><strong>Current form:</strong> 
+                                        <a href="<?php echo admin_url('admin.php?page=wpcf7&post=' . $cf7_form_id . '&action=edit'); ?>" target="_blank">Edit Form #<?php echo $cf7_form_id; ?></a>
+                                    </p>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
                             <th scope="row"><label for="enable_checkbox1">Enable First Consent Checkbox</label></th>
                             <td>
                                 <input type="checkbox" id="enable_checkbox1" name="enable_checkbox1" value="1" <?php checked(get_option('premium_content_enable_checkbox1', '1'), '1'); ?> />
@@ -497,6 +519,34 @@ class Premium_Content_Admin {
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- CF7 Instructions -->
+                <div id="cf7-instructions" style="display: <?php echo $form_mode === 'cf7' ? 'block' : 'none'; ?>;">
+                    <h3>Contact Form 7 Setup Instructions</h3>
+                    <div class="cf7-instructions-box">
+                        <h4>Step 1: Create a Contact Form 7 form with this exact code:</h4>
+                        <textarea readonly class="large-text code" rows="12">[email* premium_email class:premium-content-email-input placeholder "Corporate Email Address"]
+
+<div class="premium-content-checkbox-group">
+    <div class="premium-content-checkbox-item premium-checkbox1-wrapper">
+        <div class="premium-content-custom-checkbox" data-target="checkbox1"></div>
+        [checkbox checkbox1 class:premium-hidden-checkbox]
+        <div class="premium-content-checkbox-text">I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.</div>
+    </div>
+    <div class="premium-content-checkbox-item premium-checkbox2-wrapper">
+        <div class="premium-content-custom-checkbox" data-target="checkbox2"></div>
+        [checkbox checkbox2 class:premium-hidden-checkbox]
+        <div class="premium-content-checkbox-text">I agree to [site_name]'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.</div>
+    </div>
+</div>
+
+[hidden post_id default:get]
+[submit class:premium-content-submit-button "Continue Reading"]</textarea>
+                        <p><strong>Step 2:</strong> Copy the form ID from the Contact Form 7 admin and paste it in the "Contact Form 7 ID" field above.</p>
+                        <p><strong>Step 3:</strong> Save these settings.</p>
+                        <p><strong>Note:</strong> The form will maintain exactly the same styling as the native form. Make sure to disable CF7's default CSS if you have styling conflicts.</p>
+                    </div>
+                </div>
 
                 <!-- Text Settings -->
                 <h2>Text Settings</h2>
@@ -678,7 +728,41 @@ class Premium_Content_Admin {
             .form-table th { width: 200px; }
             .color-preview-section { margin: 30px 0; }
             .reset-section { background: #f9f9f9; padding: 20px; border-radius: 5px; }
+            .cf7-instructions-box {
+                background: #f0f8ff;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            .cf7-instructions-box h4 {
+                margin-top: 0;
+                color: #2c3e50;
+            }
         </style>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const formModeSelect = document.getElementById('form_mode');
+                const cf7FormIdRow = document.getElementById('cf7-form-id-row');
+                const cf7Instructions = document.getElementById('cf7-instructions');
+
+                function toggleFormModeSettings() {
+                    const selectedMode = formModeSelect.value;
+                    
+                    if (selectedMode === 'cf7') {
+                        cf7FormIdRow.style.display = 'table-row';
+                        cf7Instructions.style.display = 'block';
+                    } else {
+                        cf7FormIdRow.style.display = 'none';
+                        cf7Instructions.style.display = 'none';
+                    }
+                }
+
+                formModeSelect.addEventListener('change', toggleFormModeSettings);
+                toggleFormModeSettings(); // Initialize
+            });
+        </script>
         <?php
     }
 
