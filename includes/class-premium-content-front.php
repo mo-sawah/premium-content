@@ -341,6 +341,10 @@ class Premium_Content_Front {
             </div>
         ';
 
+        // NEW: Get checkbox visibility settings
+        $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
+        $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
+
         // Simplified JavaScript - handle custom checkboxes and CF7 form submission success
         $script_html = '
             <script>
@@ -365,6 +369,21 @@ class Premium_Content_Front {
                     
                     if (!premiumGate) return;
                     
+                    // NEW: Handle showing/hiding checkboxes based on settings
+                    var enableCheckbox1 = "' . $enable_checkbox1 . '";
+                    var enableCheckbox2 = "' . $enable_checkbox2 . '";
+                    
+                    var checkbox1Wrapper = premiumGate.querySelector(".premium-checkbox1-wrapper");
+                    var checkbox2Wrapper = premiumGate.querySelector(".premium-checkbox2-wrapper");
+
+                    if (checkbox1Wrapper && enableCheckbox1 !== "1") {
+                        checkbox1Wrapper.classList.add("disabled");
+                    }
+                    if (checkbox2Wrapper && enableCheckbox2 !== "1") {
+                        checkbox2Wrapper.classList.add("disabled");
+                    }
+                    // END NEW
+
                     // Set post ID for the hidden field
                     var postIdField = premiumGate.querySelector(\'input[name="post_id"]\');
                     if (postIdField) {
