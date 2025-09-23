@@ -12,43 +12,9 @@ class Premium_Content_CF7 {
         add_filter('wpcf7_validate_email*', array($this, 'validate_cf7_email'), 10, 2);
         add_filter('wpcf7_validate_checkbox', array($this, 'validate_cf7_checkboxes'), 10, 2);
         
-        // NEW: Skip validation entirely for disabled checkboxes
-        add_filter('wpcf7_skip_spam_check', array($this, 'skip_checkbox_validation'), 10, 2);
-        
         // Add AJAX action for form unlock
         add_action('wp_ajax_premium_cf7_unlock', array($this, 'handle_cf7_unlock'));
         add_action('wp_ajax_nopriv_premium_cf7_unlock', array($this, 'handle_cf7_unlock'));
-    }
-
-    /**
-     * Skip validation for disabled checkboxes by modifying form data
-     */
-    public function skip_checkbox_validation($skip, $submission) {
-        $form_mode = get_option('premium_content_form_mode', 'native');
-        if ($form_mode !== 'cf7') {
-            return $skip;
-        }
-
-        $cf7_form_id = get_option('premium_content_cf7_form_id', '');
-        $contact_form = $submission->get_contact_form();
-        
-        if (!$contact_form || $contact_form->id() != intval($cf7_form_id)) {
-            return $skip;
-        }
-
-        $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
-        $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
-        
-        // Force disabled checkboxes to have a value so they don't trigger validation errors
-        if ($enable_checkbox1 === '0') {
-            $_POST['checkbox1'] = array('1'); // Force a value for disabled checkbox1
-        }
-        
-        if ($enable_checkbox2 === '0') {
-            $_POST['checkbox2'] = array('1'); // Force a value for disabled checkbox2
-        }
-        
-        return $skip;
     }
 
     /**
@@ -160,24 +126,20 @@ class Premium_Content_CF7 {
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
         $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
         
-        // IMPORTANT: Skip validation entirely for disabled checkboxes
-        if ($name === 'checkbox1' && $enable_checkbox1 === '0') {
-            return $result; // Don't validate disabled checkbox1
-        }
+        // Get the form content to check what checkboxes actually exist
+        $form_content = $contact_form->prop('form');
+        $checkbox1_exists = strpos($form_content, 'checkbox1') !== false;
+        $checkbox2_exists = strpos($form_content, 'checkbox2') !== false;
         
-        if ($name === 'checkbox2' && $enable_checkbox2 === '0') {
-            return $result; // Don't validate disabled checkbox2
-        }
-        
-        // Only validate enabled checkboxes
-        if ($name === 'checkbox1' && $enable_checkbox1 === '1') {
+        // Only validate checkboxes that exist in the form AND are enabled in settings
+        if ($name === 'checkbox1' && $checkbox1_exists && $enable_checkbox1 === '1') {
             $value = isset($_POST[$name]) ? $_POST[$name] : array();
             if (empty($value)) {
                 $result->invalidate($tag, 'You must agree to the first consent requirement.');
             }
         }
         
-        if ($name === 'checkbox2' && $enable_checkbox2 === '1') {
+        if ($name === 'checkbox2' && $checkbox2_exists && $enable_checkbox2 === '1') {
             $value = isset($_POST[$name]) ? $_POST[$name] : array();
             if (empty($value)) {
                 $result->invalidate($tag, 'You must agree to the second consent requirement.');

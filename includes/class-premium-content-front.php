@@ -397,17 +397,18 @@ class Premium_Content_Front {
                             var target = customBox.getAttribute("data-target");
                             var hiddenCheckbox = premiumGate.querySelector(\'input[name="\' + target + \'"]\');
                             
-                            customBox.addEventListener("click", function() {
-                                customBox.classList.toggle("checked");
-                                if (hiddenCheckbox) {
+                            // Only set up click handler if the hidden checkbox actually exists
+                            if (hiddenCheckbox) {
+                                customBox.addEventListener("click", function() {
+                                    customBox.classList.toggle("checked");
                                     hiddenCheckbox.checked = customBox.classList.contains("checked");
                                     if (customBox.classList.contains("checked")) {
                                         hiddenCheckbox.value = "1";
                                     } else {
                                         hiddenCheckbox.value = "";
                                     }
-                                }
-                            });
+                                });
+                            }
                         });
                     }
                     
