@@ -101,7 +101,7 @@ class Premium_Content_CF7 {
     }
 
     /**
-     * Validate checkboxes based on enabled settings
+     * Validate checkboxes - only validate checkboxes that exist in the actual CF7 form
      */
     public function validate_cf7_checkboxes($result, $tag) {
         $form_mode = get_option('premium_content_form_mode', 'native');
@@ -123,26 +123,16 @@ class Premium_Content_CF7 {
         }
 
         $name = $tag->name;
-        $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
-        $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
         
-        // Get the form content to check what checkboxes actually exist
-        $form_content = $contact_form->prop('form');
-        $checkbox1_exists = strpos($form_content, 'checkbox1') !== false;
-        $checkbox2_exists = strpos($form_content, 'checkbox2') !== false;
-        
-        // Only validate checkboxes that exist in the form AND are enabled in settings
-        if ($name === 'checkbox1' && $checkbox1_exists && $enable_checkbox1 === '1') {
+        // Simple validation: if the checkbox field exists and is required in CF7, validate it
+        if (in_array($name, array('checkbox1', 'checkbox2'))) {
             $value = isset($_POST[$name]) ? $_POST[$name] : array();
             if (empty($value)) {
-                $result->invalidate($tag, 'You must agree to the first consent requirement.');
-            }
-        }
-        
-        if ($name === 'checkbox2' && $checkbox2_exists && $enable_checkbox2 === '1') {
-            $value = isset($_POST[$name]) ? $_POST[$name] : array();
-            if (empty($value)) {
-                $result->invalidate($tag, 'You must agree to the second consent requirement.');
+                $error_messages = array(
+                    'checkbox1' => 'You must agree to the first consent requirement.',
+                    'checkbox2' => 'You must agree to the second consent requirement.'
+                );
+                $result->invalidate($tag, $error_messages[$name]);
             }
         }
 
