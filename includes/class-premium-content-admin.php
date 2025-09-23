@@ -411,6 +411,13 @@ class Premium_Content_Admin {
             $enable_all_posts = isset($_POST['enable_all_posts']) ? '1' : '0';
             update_option('premium_content_enable_all_posts', $enable_all_posts);
 
+            // Save form mode settings
+            $form_mode = isset($_POST['form_mode']) ? sanitize_text_field($_POST['form_mode']) : 'native';
+            update_option('premium_content_form_mode', $form_mode);
+
+            $cf7_form_id = isset($_POST['cf7_form_id']) ? sanitize_text_field($_POST['cf7_form_id']) : '';
+            update_option('premium_content_cf7_form_id', $cf7_form_id);
+
             // Save individual checkbox settings
             $enable_checkbox1 = isset($_POST['enable_checkbox1']) ? '1' : '0';
             update_option('premium_content_enable_checkbox1', $enable_checkbox1);
@@ -451,6 +458,8 @@ class Premium_Content_Admin {
         $background_color = $this->get_premium_content_color('background_color', '#ffffff');
         
         $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+        $form_mode = get_option('premium_content_form_mode', 'native');
+        $cf7_form_id = get_option('premium_content_cf7_form_id', '');
         $main_title = $this->get_premium_content_text('main_title', 'Continue Reading This Article');
         $subtitle = $this->get_premium_content_text('subtitle', 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.');
         $email_placeholder = $this->get_premium_content_text('email_placeholder', 'Corporate Email Address');
@@ -765,7 +774,6 @@ class Premium_Content_Admin {
         </script>
         <?php
     }
-
     /**
      * Premium emails page callback function.
      */
