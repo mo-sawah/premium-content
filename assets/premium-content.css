@@ -89,7 +89,7 @@
   color: #999 !important;
 }
 
-/* --- NEW CSS-ONLY CHECKBOX STYLING (The Fix) --- */
+/* --- NEW CSS-ONLY CHECKBOX STYLING (with Unique Class) --- */
 
 /* This part styles the standard CF7 checkbox to look like the custom one */
 #premium-content-gate
@@ -102,7 +102,7 @@
 }
 
 /* Hide the actual checkbox input visually but keep it functional */
-#premium-content-gate .wpcf7 .premium-content-checkbox {
+#premium-content-gate .wpcf7 .pc-cf7-checkbox {
   position: absolute !important;
   opacity: 0 !important;
   cursor: pointer !important;
@@ -139,7 +139,7 @@
 /* Style the 'box' when the hidden checkbox is checked */
 #premium-content-gate
   .wpcf7
-  .premium-content-checkbox:checked
+  .pc-cf7-checkbox:checked
   + .wpcf7-list-item-label:before {
   background: #667eea !important;
   border-color: #667eea !important;
@@ -148,7 +148,7 @@
 /* Create the checkmark '✓' when the checkbox is checked */
 #premium-content-gate
   .wpcf7
-  .premium-content-checkbox:checked
+  .pc-cf7-checkbox:checked
   + .wpcf7-list-item-label:after {
   content: "✓" !important;
   position: absolute !important;
