@@ -342,20 +342,10 @@ class Premium_Content_Front {
 
         $enable_checkbox1 = get_option('premium_content_enable_checkbox1', '1');
         $enable_checkbox2 = get_option('premium_content_enable_checkbox2', '1');
-        $site_name = get_bloginfo('name'); // Get site name for JS
+        $site_name = get_bloginfo('name');
 
         $script_html = '
             <script>
-                function toggleCustomCheckbox(customBox, targetName) {
-                    customBox.classList.toggle("checked");
-                    // FIX 1: Correctly select the CF7 checkbox input, which has "[]" in its name
-                    var hiddenCheckbox = customBox.closest(".premium-content-checkbox-item").querySelector(\'input[name="\' + targetName + \'[]"]\');
-                    if (hiddenCheckbox) {
-                        // Just toggle the checked property. CF7 will handle the rest.
-                        hiddenCheckbox.checked = customBox.classList.contains("checked");
-                    }
-                }
-
                 document.addEventListener("DOMContentLoaded", function() {
                     var premiumGate = document.getElementById("premium-content-gate");
                     var truncatedContent = document.getElementById("truncated-content");
@@ -363,12 +353,9 @@ class Premium_Content_Front {
                     
                     if (!premiumGate) return;
                     
-                    // FIX 2: Replace [site_name] placeholder using JavaScript
+                    // Replace [site_name] placeholder
                     var siteName = "' . esc_js($site_name) . '";
-                    var textElements = premiumGate.querySelectorAll(".premium-content-checkbox-text, .premium-content-disclaimer");
-                    textElements.forEach(function(el) {
-                        el.innerHTML = el.innerHTML.replace(/\[site_name\]/g, siteName);
-                    });
+                    premiumGate.innerHTML = premiumGate.innerHTML.replace(/\[site_name\]/g, siteName).replace(/\[terms_of_use_link\]/g, "' . esc_js($this->get_premium_content_text('terms_of_use_url', '#')) . '");
 
                     // Handle showing/hiding checkboxes based on settings
                     var enableCheckbox1 = "' . $enable_checkbox1 . '";
@@ -388,23 +375,6 @@ class Premium_Content_Front {
                     if (postIdField) {
                         postIdField.value = ' . $post_id . ';
                     }
-
-                    var customCheckboxes = premiumGate.querySelectorAll(".premium-content-custom-checkbox");
-                    customCheckboxes.forEach(function(customBox) {
-                        var target = customBox.getAttribute("data-target");
-                        customBox.addEventListener("click", function() {
-                            toggleCustomCheckbox(customBox, target);
-                        });
-                        
-                        // Also make the text clickable
-                        var textDiv = customBox.closest(".premium-content-checkbox-item").querySelector(".premium-content-checkbox-text");
-                        if (textDiv) {
-                            textDiv.style.cursor = "pointer";
-                            textDiv.addEventListener("click", function() {
-                                toggleCustomCheckbox(customBox, target);
-                            });
-                        }
-                    });
 
                     document.addEventListener("wpcf7mailsent", function(event) {
                         if (event.detail.contactFormId == ' . intval($cf7_form_id) . ') {
