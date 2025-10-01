@@ -1,45 +1,26 @@
-<div class="premium-radio-group">
-                    <label class="premium-radio-option">
-                        <input type="radio" name="premium_access_level" value="auto" <?php checked($access_level, ''); ?> <?php checked($access_level, 'auto'); ?>>
-                        <span class="radio-label">Auto (Follow Global Settings)</span>
-                        <span class="radio-description">Currently: <strong><?php echo ucfirst($global_mode); ?> Mode</strong></span>
-                    </label>
-
-                    <label class="premium-radio-option">
-                        <input type="radio" name="premium_access_level" value="free" <?php checked($access_level, 'free'); ?>>
-                        <span class="radio-label">Free Access</span>
-                        <span class="radio-description">Always accessible to everyone</span>
-                    </label>
-
-                    <label class="premium-radio-option">
-                        <input type="radio" name="premium_access_level" value="email_gate" <?php checked($access_level, 'email_gate'); ?>>
-                        <span class="radio-label">Email Gate</span>
-                        <span class="radio-description">Requires email, grants 30-day access</span>
-                    </label>
-
-                    <label class="premium-radio-option">
-                        <input type="radio" name="premium_access_level" value="premium" <?php checked($access_level, 'premium'); ?>>
-                        <span class="radio-label">Premium Only</span>
-                        <span class="radio-description">Requires active subscription</span>
-                    </label>
-                </div>
-                <?php
+<?php
 /**
  * Handles individual post premium content settings
+ * CRITICAL: This should ONLY render on post edit screens
  */
 class Premium_Content_Post_Meta {
 
     public function __construct() {
+        // Only hook if we're in admin
+        if (!is_admin()) {
+            return;
+        }
+        
         add_action('add_meta_boxes', array($this, 'add_meta_box'));
         add_action('save_post', array($this, 'save_meta'), 10, 2);
         add_filter('display_post_states', array($this, 'add_post_state'), 10, 2);
     }
 
     /**
-     * Add meta box to post editor
+     * Add meta box to post editor ONLY
      */
     public function add_meta_box() {
-        // Only add on post edit screen, not on other admin pages
+        // Multiple safety checks
         $screen = get_current_screen();
         if (!$screen || $screen->base !== 'post') {
             return;
@@ -59,15 +40,27 @@ class Premium_Content_Post_Meta {
      * Render meta box content
      */
     public function render_meta_box($post) {
+        // Triple safety check - DO NOT render outside post editor
+        if (!is_admin()) {
+            return;
+        }
+        
+        if (!$post || !isset($post->ID)) {
+            return;
+        }
+        
+        $screen = get_current_screen();
+        if (!$screen || $screen->base !== 'post') {
+            return;
+        }
+        
         wp_nonce_field('premium_content_meta_box', 'premium_content_meta_nonce');
 
         $access_level = get_post_meta($post->ID, '_premium_access_level', true);
         $excluded_from_count = get_post_meta($post->ID, '_premium_excluded_from_count', true);
         $required_plan = get_post_meta($post->ID, '_premium_required_plan', true);
         
-        // Get global access mode
         $global_mode = premium_content_get_option('access_mode', 'free');
-        
         ?>
         <div class="premium-meta-wrapper">
             <div class="premium-meta-section">
@@ -86,6 +79,12 @@ class Premium_Content_Post_Meta {
                         <input type="radio" name="premium_access_level" value="free" <?php checked($access_level, 'free'); ?>>
                         <span class="radio-label">Free Access</span>
                         <span class="radio-description">Always accessible to everyone</span>
+                    </label>
+
+                    <label class="premium-radio-option">
+                        <input type="radio" name="premium_access_level" value="email_gate" <?php checked($access_level, 'email_gate'); ?>>
+                        <span class="radio-label">Email Gate</span>
+                        <span class="radio-description">Requires email, grants 30-day access</span>
                     </label>
 
                     <label class="premium-radio-option">
@@ -136,89 +135,23 @@ class Premium_Content_Post_Meta {
         </div>
 
         <style>
-            .premium-meta-wrapper {
-                margin: -6px -12px;
-                padding: 12px;
-            }
-            .premium-meta-section {
-                margin-bottom: 20px;
-                padding-bottom: 20px;
-                border-bottom: 1px solid #e5e5e5;
-            }
-            .premium-meta-section:last-of-type {
-                border-bottom: none;
-            }
-            .premium-meta-label {
-                display: block;
-                margin-bottom: 10px;
-                font-size: 13px;
-            }
-            .premium-meta-label .optional {
-                font-weight: normal;
-                color: #666;
-                font-size: 12px;
-            }
-            .premium-radio-group {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-            }
-            .premium-radio-option {
-                display: flex;
-                flex-direction: column;
-                padding: 12px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                cursor: pointer;
-                transition: all 0.2s;
-                background: #fafafa;
-            }
-            .premium-radio-option:hover {
-                background: #f0f0f0;
-                border-color: #999;
-            }
-            .premium-radio-option input[type="radio"] {
-                margin: 0 8px 0 0;
-            }
-            .premium-radio-option .radio-label {
-                font-weight: 600;
-                color: #2c3e50;
-                margin-bottom: 4px;
-            }
-            .premium-radio-option .radio-description {
-                font-size: 12px;
-                color: #666;
-                margin-left: 24px;
-            }
-            .premium-checkbox-option {
-                display: flex;
-                align-items: center;
-                cursor: pointer;
-            }
-            .premium-checkbox-option input {
-                margin-right: 8px;
-            }
-            .premium-info-box {
-                background: #e7f3ff;
-                border: 1px solid #b3d9ff;
-                border-radius: 4px;
-                padding: 12px;
-                margin-top: 15px;
-            }
-            .premium-info-box strong {
-                display: block;
-                margin-bottom: 8px;
-                color: #2c3e50;
-            }
-            .premium-info-box ol {
-                margin: 8px 0 0 20px;
-                font-size: 12px;
-            }
-            .description {
-                margin: 6px 0 0 0;
-                font-size: 12px;
-                color: #666;
-            }
+            .premium-meta-wrapper { margin: -6px -12px; padding: 12px; }
+            .premium-meta-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
+            .premium-meta-section:last-of-type { border-bottom: none; }
+            .premium-meta-label { display: block; margin-bottom: 10px; font-size: 13px; }
+            .premium-meta-label .optional { font-weight: normal; color: #666; font-size: 12px; }
+            .premium-radio-group { display: flex; flex-direction: column; gap: 12px; }
+            .premium-radio-option { display: flex; flex-direction: column; padding: 12px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: all 0.2s; background: #fafafa; }
+            .premium-radio-option:hover { background: #f0f0f0; border-color: #999; }
+            .premium-radio-option input[type="radio"] { margin: 0 8px 0 0; }
+            .premium-radio-option .radio-label { font-weight: 600; color: #2c3e50; margin-bottom: 4px; }
+            .premium-radio-option .radio-description { font-size: 12px; color: #666; margin-left: 24px; }
+            .premium-checkbox-option { display: flex; align-items: center; cursor: pointer; }
+            .premium-checkbox-option input { margin-right: 8px; }
+            .premium-info-box { background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; margin-top: 15px; }
+            .premium-info-box strong { display: block; margin-bottom: 8px; color: #2c3e50; }
+            .premium-info-box ol { margin: 8px 0 0 20px; font-size: 12px; }
+            .description { margin: 6px 0 0 0; font-size: 12px; color: #666; }
         </style>
         <?php
     }
@@ -285,19 +218,8 @@ class Premium_Content_Post_Meta {
             $post_states['premium'] = '<span class="dashicons dashicons-lock" style="color: #d63638;"></span> Premium';
         } elseif ($access_level === 'free') {
             $post_states['free'] = '<span class="dashicons dashicons-unlock" style="color: #00a32a;"></span> Free';
-        } else {
-            // Check if would be locked by global settings
-            $global_mode = premium_content_get_option('access_mode', 'free');
-            if ($global_mode === 'premium') {
-                $post_states['auto_premium'] = '<span class="dashicons dashicons-lock" style="color: #999;"></span> Auto: Premium';
-            } elseif ($global_mode === 'metered') {
-                $excluded = get_post_meta($post->ID, '_premium_excluded_from_count', true);
-                if ($excluded === '1') {
-                    $post_states['metered_excluded'] = '<span class="dashicons dashicons-dismiss" style="color: #999;"></span> Excluded from Count';
-                } else {
-                    $post_states['auto_metered'] = '<span class="dashicons dashicons-chart-bar" style="color: #999;"></span> Auto: Metered';
-                }
-            }
+        } elseif ($access_level === 'email_gate') {
+            $post_states['email_gate'] = '<span class="dashicons dashicons-email" style="color: #2271b1;"></span> Email Gate';
         }
 
         return $post_states;
