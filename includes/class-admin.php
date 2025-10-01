@@ -259,6 +259,269 @@ class Premium_Content_Admin {
             <form method="post" action="" class="premium-settings-form">
                 <?php wp_nonce_field('premium_access_settings'); ?>
 
+                <!-- Access Mode Selection -->
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>Content Access Mode</h2>
+                        <p>Choose how visitors access your premium content</p>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-mode-selector">
+                            <label class="premium-mode-option <?php echo $access_mode === 'free' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="free" <?php checked($access_mode, 'free'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">🔓</div>
+                                    <div class="mode-title">Free Access</div>
+                                    <div class="mode-description">All content is freely accessible to everyone</div>
+                                </div>
+                            </label>
+
+                            <label class="premium-mode-option <?php echo $access_mode === 'email_gate' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="email_gate" <?php checked($access_mode, 'email_gate'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">✉️</div>
+                                    <div class="mode-title">Email Gate</div>
+                                    <div class="mode-description">Require email to access, 30-day cookie access</div>
+                                </div>
+                            </label>
+
+                            <label class="premium-mode-option <?php echo $access_mode === 'metered' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="metered" <?php checked($access_mode, 'metered'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">📊</div>
+                                    <div class="mode-title">Metered Paywall</div>
+                                    <div class="mode-description">Limited free articles, then subscription required</div>
+                                </div>
+                            </label>
+
+                            <label class="premium-mode-option <?php echo $access_mode === 'premium' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="premium" <?php checked($access_mode, 'premium'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">🔒</div>
+                                    <div class="mode-title">Full Premium</div>
+                                    <div class="mode-description">All content requires active subscription</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Gate Settings -->
+                <div class="premium-card email-gate-settings mode-specific-settings" style="<?php echo $access_mode !== 'email_gate' ? 'display:none;' : ''; ?>">
+                    <div class="premium-card-header">
+                        <h2>Email Gate Configuration</h2>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-alert premium-alert-info">
+                            <strong>How Email Gate Works:</strong>
+                            <ul style="margin: 10px 0 0 20px;">
+                                <li>Visitor submits email via form</li>
+                                <li>30-day cookie grants access to ALL email-gated content</li>
+                                <li>Works for current and future articles</li>
+                                <li>Email stored in database</li>
+                            </ul>
+                        </div>
+
+                        <h3 style="margin-top: 30px;">Content Targeting</h3>
+                        <?php $this->render_content_targeting_fields($allowed_post_types, $allowed_categories); ?>
+                    </div>
+                </div>
+
+                <!-- Metered Paywall Settings -->
+                <div class="premium-card metered-settings mode-specific-settings" style="<?php echo $access_mode !== 'metered' ? 'display:none;' : ''; ?>">
+                    <div class="premium-card-header">
+                        <h2>Metered Paywall Configuration</h2>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-row">
+                            <div class="premium-form-group">
+                                <label class="premium-label">Free Article Limit</label>
+                                <input type="number" name="metered_limit" value="<?php echo esc_attr($metered_limit); ?>" min="1" max="100" class="premium-input">
+                                <p class="premium-description">Number of free articles per period</p>
+                            </div>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">Reset Period</label>
+                                <select name="metered_period" class="premium-select">
+                                    <option value="monthly" <?php selected($metered_period, 'monthly'); ?>>Monthly</option>
+                                    <option value="weekly" <?php selected($metered_period, 'weekly'); ?>>Weekly</option>
+                                    <option value="daily" <?php selected($metered_period, 'daily'); ?>>Daily</option>
+                                </select>
+                                <p class="premium-description">When the counter resets</p>
+                            </div>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="metered_show_counter" value="1" <?php checked($metered_show_counter, '1'); ?>>
+                                <span>Show article counter banner</span>
+                            </label>
+                            <p class="premium-description">Display remaining article count to visitors</p>
+                        </div>
+
+                        <div class="premium-form-group counter-position" style="<?php echo $metered_show_counter !== '1' ? 'display:none;' : ''; ?>">
+                            <label class="premium-label">Counter Position</label>
+                            <select name="metered_counter_position" class="premium-select">
+                                <option value="top" <?php selected($metered_counter_position, 'top'); ?>>Top of Page</option>
+                                <option value="bottom" <?php selected($metered_counter_position, 'bottom'); ?>>Bottom of Page</option>
+                                <option value="floating" <?php selected($metered_counter_position, 'floating'); ?>>Floating Banner</option>
+                            </select>
+                        </div>
+
+                        <h3 style="margin-top: 30px;">Content Targeting</h3>
+                        <?php $this->render_content_targeting_fields($allowed_post_types, $allowed_categories); ?>
+                    </div>
+                </div>
+
+                <!-- Premium Settings -->
+                <div class="premium-card premium-settings mode-specific-settings" style="<?php echo $access_mode !== 'premium' ? 'display:none;' : ''; ?>">
+                    <div class="premium-card-header">
+                        <h2>Full Premium Configuration</h2>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-alert premium-alert-info">
+                            <strong>Full Premium Mode:</strong>
+                            <ul style="margin: 10px 0 0 20px;">
+                                <li>All content requires active subscription</li>
+                                <li>No free articles or trials</li>
+                                <li>Immediate paywall on all posts</li>
+                                <li>Best for exclusive content sites</li>
+                            </ul>
+                        </div>
+
+                        <h3 style="margin-top: 30px;">Content Targeting</h3>
+                        <?php $this->render_content_targeting_fields($allowed_post_types, $allowed_categories); ?>
+                    </div>
+                </div>
+
+                <!-- Additional Options (Always visible) -->
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>Additional Options</h2>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="exclude_admins" value="1" <?php checked($exclude_admins, '1'); ?>>
+                                <span>Exclude administrators from paywall</span>
+                            </label>
+                            <p class="premium-description">Admins always have free access</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-form-actions">
+                    <button type="submit" name="premium_save_access" class="button button-primary button-large">
+                        Save Access Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <script>
+        jQuery(document).ready(function($) {
+            $('input[name="access_mode"]').on('change', function() {
+                var mode = $(this).val();
+                
+                // Hide all mode-specific settings
+                $('.mode-specific-settings').hide();
+                
+                // Show settings for selected mode
+                if (mode === 'metered') {
+                    $('.metered-settings').slideDown();
+                } else if (mode === 'email_gate') {
+                    $('.email-gate-settings').slideDown();
+                } else if (mode === 'premium') {
+                    $('.premium-settings').slideDown();
+                }
+                
+                // Update active state
+                $('.premium-mode-option').removeClass('active');
+                $(this).closest('.premium-mode-option').addClass('active');
+            });
+
+            // Toggle counter position visibility
+            $('input[name="metered_show_counter"]').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('.counter-position').slideDown();
+                } else {
+                    $('.counter-position').slideUp();
+                }
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Render content targeting fields (reusable)
+     */
+    private function render_content_targeting_fields($allowed_post_types, $allowed_categories) {
+        ?>
+        <div class="premium-form-group">
+            <label class="premium-label">Allowed Post Types</label>
+            <?php
+            $post_types = get_post_types(array('public' => true), 'objects');
+            foreach ($post_types as $post_type):
+                if (in_array($post_type->name, array('attachment', 'wp_block'))) continue;
+            ?>
+                <label class="premium-checkbox-label" style="display: block; margin-bottom: 8px;">
+                    <input type="checkbox" name="allowed_post_types[]" value="<?php echo esc_attr($post_type->name); ?>" <?php checked(in_array($post_type->name, $allowed_post_types)); ?>>
+                    <span><?php echo esc_html($post_type->label); ?></span>
+                </label>
+            <?php endforeach; ?>
+            <p class="premium-description">Select which post types should have paywall protection</p>
+        </div>
+
+        <div class="premium-form-group">
+            <label class="premium-label">Allowed Categories (Posts Only)</label>
+            <?php
+            $categories = get_categories(array('hide_empty' => false));
+            if (!empty($categories)):
+            ?>
+                <select name="allowed_categories[]" class="premium-select" multiple size="10" style="height: auto;">
+                    <option value="">-- All Categories --</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo esc_attr($category->term_id); ?>" <?php echo in_array($category->term_id, $allowed_categories) ? 'selected' : ''; ?>>
+                            <?php echo esc_html($category->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="premium-description">Leave empty for all categories, or select specific ones. Hold Ctrl/Cmd to select multiple.</p>
+            <?php else: ?>
+                <p>No categories found.</p>
+            <?php endif; ?>
+        </div>
+        <?php
+    
+        if (isset($_POST['premium_save_access']) && check_admin_referer('premium_access_settings')) {
+            $this->save_access_settings();
+            echo '<div class="notice notice-success"><p>Access settings saved successfully!</p></div>';
+        }
+
+        $access_mode = premium_content_get_option('access_mode', 'free');
+        $metered_limit = premium_content_get_option('metered_limit', 3);
+        $metered_period = premium_content_get_option('metered_period', 'monthly');
+        $metered_show_counter = premium_content_get_option('metered_show_counter', '1');
+        $metered_counter_position = premium_content_get_option('metered_counter_position', 'top');
+        $exclude_admins = premium_content_get_option('exclude_admins', '1');
+        $allowed_post_types = premium_content_get_option('allowed_post_types', array('post'));
+        $allowed_categories = premium_content_get_option('allowed_categories', array());
+        
+        if (!is_array($allowed_post_types)) {
+            $allowed_post_types = array('post');
+        }
+        
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-admin-settings"></span>
+                Access Control Settings
+            </h1>
+
+            <form method="post" action="" class="premium-settings-form">
+                <?php wp_nonce_field('premium_access_settings'); ?>
+
                 <!-- Content Targeting -->
                 <div class="premium-card">
                     <div class="premium-card-header">
