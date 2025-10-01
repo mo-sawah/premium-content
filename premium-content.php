@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content
  * Description: Truncates premium articles and prompts for an email to continue reading.
- * Version: 1.5.8
+ * Version: 1.6.0
  * Author: Mohamed Sawah
  */
 
@@ -34,6 +34,7 @@ add_action('wp_enqueue_scripts', 'custom_premium_content_styles', 99);
  * Hook to create a custom database table on plugin activation.
  */
 register_activation_hook( __FILE__, 'smart_mag_premium_content_install' );
+
 function smart_mag_premium_content_install() {
     global $wpdb;
 
@@ -71,9 +72,13 @@ function smart_mag_premium_content_install() {
     // Set default text options
     $default_texts = array(
         'enable_all_posts' => '0',
-        'form_mode' => 'native', // NEW - form mode setting
-        'cf7_form_id' => '', // NEW - Contact Form 7 form ID
-        'enable_checkbox1' => '1',  // NEW - first checkbox enabled by default
+        'enable_after_date' => '0',        // NEW
+        'enable_before_date' => '0',       // NEW
+        'after_date' => '',                // NEW
+        'before_date' => '',               // NEW
+        'form_mode' => 'native',
+        'cf7_form_id' => '',
+        'enable_checkbox1' => '1',
         'enable_checkbox2' => '1', 
         'main_title' => 'Continue Reading This Article',
         'subtitle' => 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.',
@@ -120,6 +125,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-admin
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-meta-badge.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-integrations.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-cf7.php'; // NEW
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-post-meta.php';
 
 // Instantiate the classes to hook into WordPress.
 new Premium_Content_Ajax();
@@ -127,3 +133,44 @@ new Premium_Content_Front();
 new Premium_Content_Admin();
 new Premium_Content_Meta_Badge();
 new Premium_Content_CF7(); // NEW
+new Premium_Content_Post_Meta(); // NEW - Add this line
+
+function premium_content_add_post_state($post_states, $post) {
+    if ($post->post_type !== 'post') {
+        return $post_states;
+    }
+    
+    $individual_setting = get_post_meta($post->ID, '_premium_content_setting', true);
+    
+    if ($individual_setting === 'enabled') {
+        $post_states['premium_forced'] = 'Premium: Forced ON';
+    } elseif ($individual_setting === 'disabled') {
+        $post_states['premium_disabled'] = 'Premium: Forced OFF';
+    } else {
+        // Check if it would be enabled by other rules
+        $front = new Premium_Content_Front();
+        $reflection = new ReflectionMethod('Premium_Content_Front', 'should_show_premium_gate');
+        $reflection->setAccessible(true);
+        
+        // Temporarily set the global post
+        global $post;
+        $original_post = $post;
+        $GLOBALS['post'] = $post;
+        setup_postdata($post);
+        
+        $would_show = $reflection->invoke($front);
+        
+        // Restore original post
+        $GLOBALS['post'] = $original_post;
+        if ($original_post) {
+            setup_postdata($original_post);
+        }
+        
+        if ($would_show) {
+            $post_states['premium_auto'] = 'Premium: Auto ON';
+        }
+    }
+    
+    return $post_states;
+}
+add_filter('display_post_states', 'premium_content_add_post_state', 10, 2);

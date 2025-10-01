@@ -284,17 +284,127 @@ class Premium_Content_Front {
 
     /**
      * Check if post should display premium content gate
+     * Now handles individual post settings, date-based rules, and global settings
      */
     private function should_show_premium_gate() {
-        $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+        // Only show on single posts
+        if (!is_single()) {
+            return false;
+        }
+
+        $post_id = get_the_ID();
+        if (!$post_id) {
+            return false;
+        }
+
+        // Check individual post setting first (highest priority)
+        $individual_setting = get_post_meta($post_id, '_premium_content_setting', true);
         
-        // If "enable all posts" is checked, show on all posts
-        if ($enable_all_posts === '1' && is_single()) {
+        if ($individual_setting === 'enabled') {
             return true;
         }
         
-        // Otherwise, only show on posts tagged with "premium" (original behavior)
-        return is_main_query() && has_tag('premium');
+        if ($individual_setting === 'disabled') {
+            return false;
+        }
+        
+        // If individual setting is 'auto' or not set, check other rules
+        
+        // Check premium tag (second priority)
+        if (has_tag('premium', $post_id)) {
+            return true;
+        }
+        
+        // Check date-based rules (third priority)
+        $post_date = get_the_date('Y-m-d', $post_id);
+        
+        // Check "after date" rule
+        $enable_after_date = get_option('premium_content_enable_after_date', '0');
+        $after_date = get_option('premium_content_after_date', '');
+        
+        if ($enable_after_date === '1' && !empty($after_date)) {
+            if (strtotime($post_date) >= strtotime($after_date)) {
+                return true;
+            }
+        }
+        
+        // Check "before date" rule
+        $enable_before_date = get_option('premium_content_enable_before_date', '0');
+        $before_date = get_option('premium_content_before_date', '');
+        
+        if ($enable_before_date === '1' && !empty($before_date)) {
+            if (strtotime($post_date) < strtotime($before_date)) {
+                return true;
+            }
+        }
+        
+        // Check global "enable all posts" setting (lowest priority)
+        $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+        if ($enable_all_posts === '1') {
+            return true;
+        }
+        
+        // No rules matched
+        return false;
+    }
+
+    /**
+     * Helper method to get content lock status and reason for debugging
+     * You can add this as a new method to help with troubleshooting
+     */
+    private function get_content_lock_status_debug($post_id = null) {
+        if (!$post_id) {
+            $post_id = get_the_ID();
+        }
+        
+        if (!$post_id) {
+            return array('status' => false, 'reason' => 'No post ID found');
+        }
+        
+        // Check individual post setting
+        $individual_setting = get_post_meta($post_id, '_premium_content_setting', true);
+        
+        if ($individual_setting === 'enabled') {
+            return array('status' => true, 'reason' => 'Individual post setting: Force enabled');
+        }
+        
+        if ($individual_setting === 'disabled') {
+            return array('status' => false, 'reason' => 'Individual post setting: Force disabled');
+        }
+        
+        // Check premium tag
+        if (has_tag('premium', $post_id)) {
+            return array('status' => true, 'reason' => 'Post tagged with "premium"');
+        }
+        
+        // Check date-based rules
+        $post_date = get_the_date('Y-m-d', $post_id);
+        
+        $enable_after_date = get_option('premium_content_enable_after_date', '0');
+        $after_date = get_option('premium_content_after_date', '');
+        
+        if ($enable_after_date === '1' && !empty($after_date)) {
+            if (strtotime($post_date) >= strtotime($after_date)) {
+                return array('status' => true, 'reason' => 'Date rule: Published on/after ' . date('M j, Y', strtotime($after_date)));
+            }
+        }
+        
+        $enable_before_date = get_option('premium_content_enable_before_date', '0');
+        $before_date = get_option('premium_content_before_date', '');
+        
+        if ($enable_before_date === '1' && !empty($before_date)) {
+            if (strtotime($post_date) < strtotime($before_date)) {
+                return array('status' => true, 'reason' => 'Date rule: Published before ' . date('M j, Y', strtotime($before_date)));
+            }
+        }
+        
+        // Check global enable all posts
+        $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+        if ($enable_all_posts === '1') {
+            return array('status' => true, 'reason' => 'Global setting: Enable for all posts');
+        }
+        
+        return array('status' => false, 'reason' => 'No matching rules found');
     }
 
     /**

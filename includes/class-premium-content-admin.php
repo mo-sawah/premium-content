@@ -376,130 +376,184 @@ class Premium_Content_Admin {
      * Settings page callback function.
      */
     public function settings_page() {
-        if (!current_user_can('manage_options')) {
-            return;
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    if (isset($_POST['reset_colors']) && wp_verify_nonce($_POST['premium_content_reset_nonce'], 'premium_content_reset')) {
+        $default_colors = array(
+            'primary_color' => '#2c3e50',
+            'secondary_color' => '#667eea',
+            'border_color' => '#e1e5e9',
+            'text_color' => '#666',
+            'title_color' => '#2c3e50',
+            'link_color' => '#667eea',
+            'background_color' => '#ffffff'
+        );
+
+        foreach ($default_colors as $key => $value) {
+            update_option('premium_content_' . $key, $value);
         }
 
-        if (isset($_POST['reset_colors']) && wp_verify_nonce($_POST['premium_content_reset_nonce'], 'premium_content_reset')) {
-            $default_colors = array(
-                'primary_color' => '#2c3e50',
-                'secondary_color' => '#667eea',
-                'border_color' => '#e1e5e9',
-                'text_color' => '#666',
-                'title_color' => '#2c3e50',
-                'link_color' => '#667eea',
-                'background_color' => '#ffffff'
-            );
+        echo '<div class="notice notice-success"><p>Colors reset to defaults successfully!</p></div>';
+    }
 
-            foreach ($default_colors as $key => $value) {
-                update_option('premium_content_' . $key, $value);
+    if (isset($_POST['submit']) && wp_verify_nonce($_POST['premium_content_nonce'], 'premium_content_settings')) {
+        // Save colors
+        $colors = array( 'primary_color', 'secondary_color', 'border_color', 'text_color', 'title_color', 'link_color', 'background_color' );
+        foreach ($colors as $color) {
+            if (isset($_POST[$color])) {
+                update_option('premium_content_' . $color, sanitize_hex_color($_POST[$color]));
             }
-
-            echo '<div class="notice notice-success"><p>Colors reset to defaults successfully!</p></div>';
         }
 
-        if (isset($_POST['submit']) && wp_verify_nonce($_POST['premium_content_nonce'], 'premium_content_settings')) {
-            // Save colors
-            $colors = array( 'primary_color', 'secondary_color', 'border_color', 'text_color', 'title_color', 'link_color', 'background_color' );
-            foreach ($colors as $color) {
-                if (isset($_POST[$color])) {
-                    update_option('premium_content_' . $color, sanitize_hex_color($_POST[$color]));
-                }
+        // Save mode settings
+        $enable_all_posts = isset($_POST['enable_all_posts']) ? '1' : '0';
+        update_option('premium_content_enable_all_posts', $enable_all_posts);
+
+        // NEW: Save date-based settings
+        $enable_after_date = isset($_POST['enable_after_date']) ? '1' : '0';
+        update_option('premium_content_enable_after_date', $enable_after_date);
+
+        $enable_before_date = isset($_POST['enable_before_date']) ? '1' : '0';
+        update_option('premium_content_enable_before_date', $enable_before_date);
+
+        $after_date = isset($_POST['after_date']) ? sanitize_text_field($_POST['after_date']) : '';
+        update_option('premium_content_after_date', $after_date);
+
+        $before_date = isset($_POST['before_date']) ? sanitize_text_field($_POST['before_date']) : '';
+        update_option('premium_content_before_date', $before_date);
+
+        // Save form mode settings
+        $form_mode = isset($_POST['form_mode']) ? sanitize_text_field($_POST['form_mode']) : 'native';
+        update_option('premium_content_form_mode', $form_mode);
+
+        $cf7_form_id = isset($_POST['cf7_form_id']) ? sanitize_text_field($_POST['cf7_form_id']) : '';
+        update_option('premium_content_cf7_form_id', $cf7_form_id);
+
+        // Save individual checkbox settings
+        $enable_checkbox1 = isset($_POST['enable_checkbox1']) ? '1' : '0';
+        update_option('premium_content_enable_checkbox1', $enable_checkbox1);
+
+        $enable_checkbox2 = isset($_POST['enable_checkbox2']) ? '1' : '0';
+        update_option('premium_content_enable_checkbox2', $enable_checkbox2);
+
+        // Save text settings
+        $text_fields = array(
+            'main_title' => 'Continue Reading This Article',
+            'subtitle' => 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.',
+            'email_placeholder' => 'Corporate Email Address',
+            'button_text' => 'Continue Reading',
+            'checkbox1_text' => 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.',
+            'checkbox2_text' => 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.',
+            'disclaimer_text' => 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.',
+            'terms_of_use_url' => '#',
+            'ccpa_privacy_notice_url' => '#'
+        );
+
+        foreach ($text_fields as $field => $default) {
+            if (isset($_POST[$field])) {
+                $value = wp_unslash($_POST[$field]);
+                update_option('premium_content_' . $field, wp_kses_post($value));
             }
-
-            // Save mode settings
-            $enable_all_posts = isset($_POST['enable_all_posts']) ? '1' : '0';
-            update_option('premium_content_enable_all_posts', $enable_all_posts);
-
-            // Save form mode settings
-            $form_mode = isset($_POST['form_mode']) ? sanitize_text_field($_POST['form_mode']) : 'native';
-            update_option('premium_content_form_mode', $form_mode);
-
-            $cf7_form_id = isset($_POST['cf7_form_id']) ? sanitize_text_field($_POST['cf7_form_id']) : '';
-            update_option('premium_content_cf7_form_id', $cf7_form_id);
-
-            // Save individual checkbox settings
-            $enable_checkbox1 = isset($_POST['enable_checkbox1']) ? '1' : '0';
-            update_option('premium_content_enable_checkbox1', $enable_checkbox1);
-
-            $enable_checkbox2 = isset($_POST['enable_checkbox2']) ? '1' : '0';
-            update_option('premium_content_enable_checkbox2', $enable_checkbox2);
-
-            // Save text settings
-            $text_fields = array(
-                'main_title' => 'Continue Reading This Article',
-                'subtitle' => 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.',
-                'email_placeholder' => 'Corporate Email Address',
-                'button_text' => 'Continue Reading',
-                'checkbox1_text' => 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.',
-                'checkbox2_text' => 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.',
-                'disclaimer_text' => 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.',
-                'terms_of_use_url' => '#',
-                'ccpa_privacy_notice_url' => '#'
-            );
-
-            foreach ($text_fields as $field => $default) {
-                if (isset($_POST[$field])) {
-                    $value = wp_unslash($_POST[$field]);
-                    update_option('premium_content_' . $field, wp_kses_post($value));
-                }
-            }
-
-            echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
         }
 
-        // Get current values
-        $primary_color = $this->get_premium_content_color('primary_color', '#2c3e50');
-        $secondary_color = $this->get_premium_content_color('secondary_color', '#667eea');
-        $border_color = $this->get_premium_content_color('border_color', '#e1e5e9');
-        $text_color = $this->get_premium_content_color('text_color', '#666');
-        $title_color = $this->get_premium_content_color('title_color', '#2c3e50');
-        $link_color = $this->get_premium_content_color('link_color', '#667eea');
-        $background_color = $this->get_premium_content_color('background_color', '#ffffff');
+        echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
+    }
+
+    // Get current values
+    $primary_color = $this->get_premium_content_color('primary_color', '#2c3e50');
+    $secondary_color = $this->get_premium_content_color('secondary_color', '#667eea');
+    $border_color = $this->get_premium_content_color('border_color', '#e1e5e9');
+    $text_color = $this->get_premium_content_color('text_color', '#666');
+    $title_color = $this->get_premium_content_color('title_color', '#2c3e50');
+    $link_color = $this->get_premium_content_color('link_color', '#667eea');
+    $background_color = $this->get_premium_content_color('background_color', '#ffffff');
+    
+    $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
+    
+    // NEW: Get date-based settings
+    $enable_after_date = get_option('premium_content_enable_after_date', '0');
+    $enable_before_date = get_option('premium_content_enable_before_date', '0');
+    $after_date = get_option('premium_content_after_date', '');
+    $before_date = get_option('premium_content_before_date', '');
+    
+    $form_mode = get_option('premium_content_form_mode', 'native');
+    $cf7_form_id = get_option('premium_content_cf7_form_id', '');
+    $main_title = $this->get_premium_content_text('main_title', 'Continue Reading This Article');
+    $subtitle = $this->get_premium_content_text('subtitle', 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.');
+    $email_placeholder = $this->get_premium_content_text('email_placeholder', 'Corporate Email Address');
+    $button_text = $this->get_premium_content_text('button_text', 'Continue Reading');
+    $checkbox1_text = $this->get_premium_content_text('checkbox1_text', 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.');
+    $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
+    $disclaimer_text = $this->get_premium_content_text('disclaimer_text', 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.');
+    $terms_of_use_url = $this->get_premium_content_text('terms_of_use_url', '#');
+    $ccpa_privacy_notice_url = $this->get_premium_content_text('ccpa_privacy_notice_url', '#');
+
+    // HTML for settings page
+    ?>
+    <div class="wrap">
+        <h1>Premium Content Settings</h1>
+        <p>Customize the colors, text, and behavior of your premium content gate.</p>
         
-        $enable_all_posts = get_option('premium_content_enable_all_posts', '0');
-        $form_mode = get_option('premium_content_form_mode', 'native');
-        $cf7_form_id = get_option('premium_content_cf7_form_id', '');
-        $main_title = $this->get_premium_content_text('main_title', 'Continue Reading This Article');
-        $subtitle = $this->get_premium_content_text('subtitle', 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.');
-        $email_placeholder = $this->get_premium_content_text('email_placeholder', 'Corporate Email Address');
-        $button_text = $this->get_premium_content_text('button_text', 'Continue Reading');
-        $checkbox1_text = $this->get_premium_content_text('checkbox1_text', 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.');
-        $checkbox2_text = $this->get_premium_content_text('checkbox2_text', 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.');
-        $disclaimer_text = $this->get_premium_content_text('disclaimer_text', 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.');
-        $terms_of_use_url = $this->get_premium_content_text('terms_of_use_url', '#');
-        $ccpa_privacy_notice_url = $this->get_premium_content_text('ccpa_privacy_notice_url', '#');
-
-        // HTML for settings page
-        ?>
-        <div class="wrap">
-            <h1>Premium Content Settings</h1>
-            <p>Customize the colors, text, and behavior of your premium content gate.</p>
+        <form method="post" action="">
+            <?php wp_nonce_field('premium_content_settings', 'premium_content_nonce'); ?>
             
-            <form method="post" action="">
-                <?php wp_nonce_field('premium_content_settings', 'premium_content_nonce'); ?>
-                
-                <!-- Mode Settings -->
-                <h2>Mode Settings</h2>
-                <table class="form-table" role="presentation">
-                    <tbody>
-                        <tr>
-                            <th scope="row"><label for="enable_all_posts">Enable for All Posts</label></th>
-                            <td>
-                                <input type="checkbox" id="enable_all_posts" name="enable_all_posts" value="1" <?php checked($enable_all_posts, '1'); ?> />
-                                <p class="description">When enabled, the paywall will appear on ALL posts (old and new) by default, not just those tagged with "premium". Posts tagged with "premium" will still work as before.</p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="form_mode">Form Mode</label></th>
-                            <td>
-                                <select id="form_mode" name="form_mode">
-                                    <option value="native" <?php selected($form_mode, 'native'); ?>>Native Form (Built-in)</option>
-                                    <option value="cf7" <?php selected($form_mode, 'cf7'); ?>>Contact Form 7</option>
-                                </select>
-                                <p class="description">Choose between the built-in form or Contact Form 7. The styling will remain exactly the same.</p>
-                            </td>
-                        </tr>
+            <!-- Mode Settings -->
+            <h2>Content Lock Settings</h2>
+            <table class="form-table" role="presentation">
+                <tbody>
+                    <tr>
+                        <th scope="row"><label for="enable_all_posts">Enable for All Posts</label></th>
+                        <td>
+                            <input type="checkbox" id="enable_all_posts" name="enable_all_posts" value="1" <?php checked($enable_all_posts, '1'); ?> />
+                            <p class="description">When enabled, the paywall will appear on ALL posts (old and new) by default. Posts tagged with "premium" will still work as before.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="enable_after_date">Enable After Date</label></th>
+                        <td>
+                            <input type="checkbox" id="enable_after_date" name="enable_after_date" value="1" <?php checked($enable_after_date, '1'); ?> />
+                            <span style="margin-left: 10px;">
+                                <input type="date" id="after_date" name="after_date" value="<?php echo esc_attr($after_date); ?>" />
+                            </span>
+                            <p class="description">Enable content lock on all posts published on or after the selected date (including future posts).</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="enable_before_date">Enable Before Date</label></th>
+                        <td>
+                            <input type="checkbox" id="enable_before_date" name="enable_before_date" value="1" <?php checked($enable_before_date, '1'); ?> />
+                            <span style="margin-left: 10px;">
+                                <input type="date" id="before_date" name="before_date" value="<?php echo esc_attr($before_date); ?>" />
+                            </span>
+                            <p class="description">Enable content lock on all posts published before the selected date.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div style="background: #f0f8ff; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin: 10px 0;">
+                                <h4 style="margin-top: 0; color: #2c3e50;">Content Lock Priority Order:</h4>
+                                <ol style="margin: 10px 0;">
+                                    <li><strong>Individual post settings</strong> (from edit post page) - highest priority</li>
+                                    <li><strong>Premium tag</strong> - posts tagged with "premium"</li>
+                                    <li><strong>Date-based rules</strong> - after date, before date</li>
+                                    <li><strong>Enable for all posts</strong> - lowest priority</li>
+                                </ol>
+                                <p style="margin-bottom: 0; font-style: italic;">Note: Individual post settings will always override all other rules.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="form_mode">Form Mode</label></th>
+                        <td>
+                            <select id="form_mode" name="form_mode">
+                                <option value="native" <?php selected($form_mode, 'native'); ?>>Native Form (Built-in)</option>
+                                <option value="cf7" <?php selected($form_mode, 'cf7'); ?>>Contact Form 7</option>
+                            </select>
+                            <p class="description">Choose between the built-in form or Contact Form 7. The styling will remain exactly the same.</p>
+                        </td>
+                    </tr>
                         <tr id="cf7-form-id-row" style="display: <?php echo $form_mode === 'cf7' ? 'table-row' : 'none'; ?>;">
                             <th scope="row"><label for="cf7_form_id">Contact Form 7 ID</label></th>
                             <td>
@@ -751,26 +805,49 @@ class Premium_Content_Admin {
         </style>
 
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const formModeSelect = document.getElementById('form_mode');
-                const cf7FormIdRow = document.getElementById('cf7-form-id-row');
-                const cf7Instructions = document.getElementById('cf7-instructions');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Your existing form mode functionality
+            const formModeSelect = document.getElementById('form_mode');
+            const cf7FormIdRow = document.getElementById('cf7-form-id-row');
+            const cf7Instructions = document.getElementById('cf7-instructions');
 
-                function toggleFormModeSettings() {
-                    const selectedMode = formModeSelect.value;
-                    
-                    if (selectedMode === 'cf7') {
-                        cf7FormIdRow.style.display = 'table-row';
-                        cf7Instructions.style.display = 'block';
-                    } else {
-                        cf7FormIdRow.style.display = 'none';
-                        cf7Instructions.style.display = 'none';
-                    }
+            function toggleFormModeSettings() {
+                const selectedMode = formModeSelect.value;
+                
+                if (selectedMode === 'cf7') {
+                    cf7FormIdRow.style.display = 'table-row';
+                    cf7Instructions.style.display = 'block';
+                } else {
+                    cf7FormIdRow.style.display = 'none';
+                    cf7Instructions.style.display = 'none';
                 }
+            }
 
-                formModeSelect.addEventListener('change', toggleFormModeSettings);
-                toggleFormModeSettings(); // Initialize
-            });
+            formModeSelect.addEventListener('change', toggleFormModeSettings);
+            toggleFormModeSettings(); // Initialize
+
+            // NEW: Enable/disable date inputs based on checkbox state
+            function toggleDateInputs() {
+                var afterCheckbox = document.getElementById('enable_after_date');
+                var afterDateInput = document.getElementById('after_date');
+                var beforeCheckbox = document.getElementById('enable_before_date');
+                var beforeDateInput = document.getElementById('before_date');
+                
+                afterDateInput.disabled = !afterCheckbox.checked;
+                beforeDateInput.disabled = !beforeCheckbox.checked;
+                
+                if (!afterCheckbox.checked) afterDateInput.style.opacity = '0.5';
+                else afterDateInput.style.opacity = '1';
+                
+                if (!beforeCheckbox.checked) beforeDateInput.style.opacity = '0.5';
+                else beforeDateInput.style.opacity = '1';
+            }
+            
+            document.getElementById('enable_after_date').addEventListener('change', toggleDateInputs);
+            document.getElementById('enable_before_date').addEventListener('change', toggleDateInputs);
+            
+            toggleDateInputs(); // Initialize
+        });
         </script>
         <?php
     }

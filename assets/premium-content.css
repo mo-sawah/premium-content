@@ -263,3 +263,78 @@
 #premium-content-gate .wpcf7-form {
   margin-bottom: 25px !important;
 }
+
+
+/* === Single plug-and-play checkbox style for checkbox3 === */
+
+/* 1) Hide the native input visually but keep it focusable/accessible */
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"] {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;     /* accessible hiding */
+  white-space: nowrap !important;
+  border: 0 !important;
+  left: -9999px !important;
+  opacity: 0 !important;
+}
+
+/* 2) Style the visible label text (the span CF7 outputs) */
+#premium-content-gate .wpcf7 .wpcf7-list-item-label {
+  position: relative !important;
+  padding-left: 36px !important;     /* room for the fake box */
+  cursor: pointer !important;
+  font-size: 14px !important;
+  color: #666 !important;
+  display: inline-block !important;
+  line-height: 1.4 !important;
+  margin-bottom: 15px !important;
+}
+
+/* 3) Fake checkbox (drawn by :before on the label span) */
+#premium-content-gate .wpcf7 .wpcf7-list-item-label:before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #ddd !important;
+  border-radius: 4px !important;
+  background: #fff !important;
+  box-sizing: border-box !important;
+  transition: all .15s ease !important;
+  z-index: 1 !important;
+}
+
+/* 4) Checked state: change color of fake box */
+/* Use both + and ~ so it works whether the span is immediate or general sibling */
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked + .wpcf7-list-item-label:before,
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked ~ .wpcf7-list-item-label:before {
+  background: #667eea !important;
+  border-color: #667eea !important;
+}
+
+/* 5) Check mark */
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked + .wpcf7-list-item-label:after,
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked ~ .wpcf7-list-item-label:after {
+  content: "✓" !important;
+  position: absolute !important;
+  left: 4px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  z-index: 2 !important;
+}
+
+/* 6) Focus outline for keyboard users */
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:focus + .wpcf7-list-item-label:before,
+#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:focus ~ .wpcf7-list-item-label:before {
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.18) !important;
+}
