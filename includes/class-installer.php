@@ -225,7 +225,11 @@ class Premium_Content_Installer {
     private static function set_default_options() {
         $defaults = array(
             // Access Control
-            'access_mode' => 'free', // free, metered, premium
+            'access_mode' => 'free', // free, metered, email_gate, premium
+            
+            // Allowed post types and categories
+            'allowed_post_types' => array('post'),
+            'allowed_categories' => array(),
             
             // Metered Paywall Settings
             'metered_limit' => 3,

@@ -44,8 +44,8 @@ class Premium_Content_CF7_Handler {
         // Store email in database
         $this->store_email($email, $post_id);
         
-        // Set unlock cookie
-        setcookie('premium_content_unlock', 'unlocked', time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+        // Set 30-day email gate access cookie
+        setcookie('premium_email_gate_access', 'granted', time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
     }
 
     /**

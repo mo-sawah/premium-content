@@ -148,8 +148,33 @@ class Premium_Content_Metered_Paywall {
             $post_id = get_the_ID();
         }
         
+        // Only work on singular posts/pages, not homepage or archives
         if (!$post_id || !is_singular()) {
             return false;
+        }
+        
+        // Check allowed post types
+        $allowed_post_types = premium_content_get_option('allowed_post_types', array('post'));
+        if (!is_array($allowed_post_types)) {
+            $allowed_post_types = array('post');
+        }
+        
+        $post_type = get_post_type($post_id);
+        if (!in_array($post_type, $allowed_post_types)) {
+            return false;
+        }
+        
+        // Check allowed categories (only for posts)
+        if ($post_type === 'post') {
+            $allowed_categories = premium_content_get_option('allowed_categories', array());
+            if (!empty($allowed_categories) && is_array($allowed_categories)) {
+                $post_categories = wp_get_post_categories($post_id);
+                $has_allowed_category = !empty(array_intersect($post_categories, $allowed_categories));
+                
+                if (!$has_allowed_category) {
+                    return false;
+                }
+            }
         }
         
         // Check if user is admin and admins are excluded
@@ -180,6 +205,16 @@ class Premium_Content_Metered_Paywall {
             return true;
         }
         
+        if ($post_setting === 'email_gate') {
+            // Check if user has email gate access
+            return !self::has_email_gate_access();
+        }
+        
+        // Email Gate mode - check cookie
+        if ($access_mode === 'email_gate') {
+            return !self::has_email_gate_access();
+        }
+        
         // Premium mode - show paywall for all
         if ($access_mode === 'premium') {
             return true;
@@ -200,6 +235,13 @@ class Premium_Content_Metered_Paywall {
         }
         
         return false;
+    }
+    
+    /**
+     * Check if user has email gate access (30-day cookie)
+     */
+    public static function has_email_gate_access() {
+        return isset($_COOKIE['premium_email_gate_access']) && $_COOKIE['premium_email_gate_access'] === 'granted';
     }
 
     /**

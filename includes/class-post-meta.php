@@ -1,4 +1,29 @@
-<?php
+<div class="premium-radio-group">
+                    <label class="premium-radio-option">
+                        <input type="radio" name="premium_access_level" value="auto" <?php checked($access_level, ''); ?> <?php checked($access_level, 'auto'); ?>>
+                        <span class="radio-label">Auto (Follow Global Settings)</span>
+                        <span class="radio-description">Currently: <strong><?php echo ucfirst($global_mode); ?> Mode</strong></span>
+                    </label>
+
+                    <label class="premium-radio-option">
+                        <input type="radio" name="premium_access_level" value="free" <?php checked($access_level, 'free'); ?>>
+                        <span class="radio-label">Free Access</span>
+                        <span class="radio-description">Always accessible to everyone</span>
+                    </label>
+
+                    <label class="premium-radio-option">
+                        <input type="radio" name="premium_access_level" value="email_gate" <?php checked($access_level, 'email_gate'); ?>>
+                        <span class="radio-label">Email Gate</span>
+                        <span class="radio-description">Requires email, grants 30-day access</span>
+                    </label>
+
+                    <label class="premium-radio-option">
+                        <input type="radio" name="premium_access_level" value="premium" <?php checked($access_level, 'premium'); ?>>
+                        <span class="radio-label">Premium Only</span>
+                        <span class="radio-description">Requires active subscription</span>
+                    </label>
+                </div>
+                <?php
 /**
  * Handles individual post premium content settings
  */
@@ -220,7 +245,7 @@ class Premium_Content_Post_Meta {
         // Save access level
         if (isset($_POST['premium_access_level'])) {
             $access_level = sanitize_text_field($_POST['premium_access_level']);
-            if (in_array($access_level, array('auto', 'free', 'premium'))) {
+            if (in_array($access_level, array('auto', 'free', 'email_gate', 'premium'))) {
                 update_post_meta($post_id, '_premium_access_level', $access_level);
             }
         }
