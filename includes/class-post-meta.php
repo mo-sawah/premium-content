@@ -39,6 +39,12 @@ class Premium_Content_Post_Meta {
      * Add meta box to post editor
      */
     public function add_meta_box() {
+        // Only add on post edit screen, not on other admin pages
+        $screen = get_current_screen();
+        if (!$screen || $screen->base !== 'post') {
+            return;
+        }
+        
         add_meta_box(
             'premium_content_settings',
             '<span class="dashicons dashicons-lock" style="margin-right: 5px;"></span> Premium Content',
