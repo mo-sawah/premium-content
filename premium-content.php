@@ -1,176 +1,212 @@
 <?php
 /**
- * Plugin Name: Premium Content
- * Description: Truncates premium articles and prompts for an email to continue reading.
- * Version: 1.6.0
+ * Plugin Name: Premium Content Pro
+ * Description: Advanced content monetization with metered paywall, subscriptions, and payment processing.
+ * Version: 2.0.0
  * Author: Mohamed Sawah
+ * Requires PHP: 7.4
  */
 
-// Exit if accessed directly.
-if ( ! defined( 'ABSPATH' ) ) {
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
     exit;
 }
 
+// Define plugin constants
+define('PREMIUM_CONTENT_VERSION', '2.0.0');
+define('PREMIUM_CONTENT_PATH', plugin_dir_path(__FILE__));
+define('PREMIUM_CONTENT_URL', plugin_dir_url(__FILE__));
 
-function custom_premium_content_styles() {
-    // Path for CSS file inside an 'assets' folder
-    $css_file_path = plugin_dir_path( __FILE__ ) . 'assets/premium-content.css';
+/**
+ * Plugin activation hook
+ */
+register_activation_hook(__FILE__, 'premium_content_activate');
+function premium_content_activate() {
+    require_once PREMIUM_CONTENT_PATH . 'includes/class-installer.php';
+    Premium_Content_Installer::activate();
+}
 
-    if ( file_exists( $css_file_path ) ) {
+/**
+ * Plugin deactivation hook
+ */
+register_deactivation_hook(__FILE__, 'premium_content_deactivate');
+function premium_content_deactivate() {
+    // Clear scheduled events if any
+    wp_clear_scheduled_hook('premium_content_daily_cleanup');
+}
+
+/**
+ * Load plugin text domain for translations
+ */
+add_action('plugins_loaded', 'premium_content_load_textdomain');
+function premium_content_load_textdomain() {
+    load_plugin_textdomain('premium-content', false, dirname(plugin_basename(__FILE__)) . '/languages');
+}
+
+/**
+ * Enqueue admin styles and scripts
+ */
+add_action('admin_enqueue_scripts', 'premium_content_admin_assets');
+function premium_content_admin_assets($hook) {
+    // Only load on plugin pages
+    if (strpos($hook, 'premium-content') === false && $hook !== 'post.php' && $hook !== 'post-new.php') {
+        return;
+    }
+
+    wp_enqueue_style(
+        'premium-content-admin',
+        PREMIUM_CONTENT_URL . 'assets/css/admin.css',
+        array(),
+        PREMIUM_CONTENT_VERSION
+    );
+
+    wp_enqueue_script(
+        'premium-content-admin',
+        PREMIUM_CONTENT_URL . 'assets/js/admin.js',
+        array('jquery'),
+        PREMIUM_CONTENT_VERSION,
+        true
+    );
+
+    wp_localize_script('premium-content-admin', 'premiumContentAdmin', array(
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('premium_content_admin'),
+        'strings' => array(
+            'confirmDelete' => __('Are you sure you want to delete this?', 'premium-content'),
+            'processing' => __('Processing...', 'premium-content'),
+            'error' => __('An error occurred. Please try again.', 'premium-content'),
+        )
+    ));
+}
+
+/**
+ * Enqueue frontend styles and scripts
+ */
+add_action('wp_enqueue_scripts', 'premium_content_frontend_assets');
+function premium_content_frontend_assets() {
+    wp_enqueue_style(
+        'premium-content-frontend',
+        PREMIUM_CONTENT_URL . 'assets/css/frontend.css',
+        array(),
+        PREMIUM_CONTENT_VERSION
+    );
+
+    // Only load paywall script on single posts/pages
+    if (is_singular()) {
+        wp_enqueue_script(
+            'premium-content-paywall',
+            PREMIUM_CONTENT_URL . 'assets/js/metered-paywall.js',
+            array('jquery'),
+            PREMIUM_CONTENT_VERSION,
+            true
+        );
+
+        wp_localize_script('premium-content-paywall', 'premiumContentPaywall', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('premium_content_paywall'),
+            'postId' => get_the_ID(),
+            'isUserLoggedIn' => is_user_logged_in(),
+            'strings' => array(
+                'articlesRemaining' => __('You have %d free articles remaining this month', 'premium-content'),
+                'lastArticle' => __('This is your last free article!', 'premium-content'),
+                'limitReached' => __('You\'ve reached your free article limit', 'premium-content'),
+            )
+        ));
+    }
+
+    // Enqueue dashboard styles on user dashboard page
+    if (is_page('account') || is_page('pricing') || is_page('checkout')) {
         wp_enqueue_style(
-            'premium-content-fix',
-            plugin_dir_url( __FILE__ ) . 'assets/premium-content.css',
+            'premium-content-dashboard',
+            PREMIUM_CONTENT_URL . 'assets/css/dashboard.css',
             array(),
-            filemtime( $css_file_path ),
-            'all'
+            PREMIUM_CONTENT_VERSION
         );
     }
 }
 
-// Ensure it loads after the theme styles by setting a high priority
-add_action('wp_enqueue_scripts', 'custom_premium_content_styles', 99);
+/**
+ * Include required files
+ */
+require_once PREMIUM_CONTENT_PATH . 'includes/class-installer.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-admin.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-cf7-handler.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-metered-paywall.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-subscription-manager.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-stripe-handler.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-paypal-handler.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-user-dashboard.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-page-generator.php';
+require_once PREMIUM_CONTENT_PATH . 'includes/class-post-meta.php';
 
 /**
- * Hook to create a custom database table on plugin activation.
+ * Initialize plugin classes
  */
-register_activation_hook( __FILE__, 'smart_mag_premium_content_install' );
-
-function smart_mag_premium_content_install() {
-    global $wpdb;
-
-    $table_name = $wpdb->prefix . 'smart_mag_premium_emails';
-    $charset_collate = $wpdb->get_charset_collate();
-
-    $sql = "CREATE TABLE $table_name (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        email varchar(255) NOT NULL,
-        post_id bigint(20) NOT NULL,
-        created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        PRIMARY KEY  (id)
-    ) $charset_collate;";
-
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $sql );
-
-    // Set default color options
-    $default_colors = array(
-        'primary_color' => '#2c3e50',
-        'secondary_color' => '#667eea',
-        'border_color' => '#e1e5e9',
-        'text_color' => '#666',
-        'title_color' => '#2c3e50',
-        'link_color' => '#667eea',
-        'background_color' => '#ffffff'
-    );
-
-    foreach ($default_colors as $key => $value) {
-        if (get_option('premium_content_' . $key) === false) {
-            add_option('premium_content_' . $key, $value);
-        }
-    }
-
-    // Set default text options
-    $default_texts = array(
-        'enable_all_posts' => '0',
-        'enable_after_date' => '0',        // NEW
-        'enable_before_date' => '0',       // NEW
-        'after_date' => '',                // NEW
-        'before_date' => '',               // NEW
-        'form_mode' => 'native',
-        'cf7_form_id' => '',
-        'enable_checkbox1' => '1',
-        'enable_checkbox2' => '1', 
-        'main_title' => 'Continue Reading This Article',
-        'subtitle' => 'Enjoy this article as well as all of our content, including E-Guides, news, tips and more.',
-        'email_placeholder' => 'Corporate Email Address',
-        'button_text' => 'Continue Reading',
-        'checkbox1_text' => 'I agree to [site_name] and its group companies processing my personal information to provide information relevant to my professional interests via phone, email, and similar methods. My profile may be enhanced with additional professional details.',
-        'checkbox2_text' => 'I agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Partners</a> processing my personal information for direct marketing, including contact via phone, email, and similar methods regarding information relevant to my professional interests.',
-        'disclaimer_text' => 'By registering or signing into your [site_name] account, you agree to [site_name]\'s <a href="[terms_of_use_link]" target="_blank">Terms of Use</a> and consent to the processing of your personal information as described in our <a href="[privacy_policy_link]" target="_blank">Privacy Policy</a>. By submitting this form, you acknowledge that your personal information will be transferred to [site_name]\'s servers in the United States. California residents, please refer to our <a href="[ccpa_privacy_notice_link]" target="_blank">CCPA Privacy Notice</a>.',
-        'terms_of_use_url' => '#',
-        'ccpa_privacy_notice_url' => '#'
-    );
-
-    foreach ($default_texts as $key => $value) {
-        if (get_option('premium_content_' . $key) === false) {
-            add_option('premium_content_' . $key, $value);
-        }
-    }
-
-    // Set default integration options
-    $default_integrations = array(
-        'integration_enabled' => '0',
-        'integration_type' => 'none',
-        'integration_logging' => '0',
-        'mailchimp_api_key' => '',
-        'mailchimp_list_id' => '',
-        'zoho_client_id' => '',
-        'zoho_client_secret' => '',
-        'zoho_access_token' => '',
-        'zoho_refresh_token' => '',
-        'zoho_datacenter' => 'com'
-    );
-
-    foreach ($default_integrations as $key => $value) {
-        if (get_option('premium_content_' . $key) === false) {
-            add_option('premium_content_' . $key, $value);
-        }
-    }
+add_action('plugins_loaded', 'premium_content_init');
+function premium_content_init() {
+    new Premium_Content_Admin();
+    new Premium_Content_CF7_Handler();
+    new Premium_Content_Metered_Paywall();
+    new Premium_Content_Subscription_Manager();
+    new Premium_Content_Stripe_Handler();
+    new Premium_Content_PayPal_Handler();
+    new Premium_Content_User_Dashboard();
+    new Premium_Content_Post_Meta();
 }
 
-// Include necessary files.
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-ajax.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-front.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-admin.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-meta-badge.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-integrations.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-cf7.php'; // NEW
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-premium-content-post-meta.php';
-
-// Instantiate the classes to hook into WordPress.
-new Premium_Content_Ajax();
-new Premium_Content_Front();
-new Premium_Content_Admin();
-new Premium_Content_Meta_Badge();
-new Premium_Content_CF7(); // NEW
-new Premium_Content_Post_Meta(); // NEW - Add this line
-
-function premium_content_add_post_state($post_states, $post) {
-    if ($post->post_type !== 'post') {
-        return $post_states;
-    }
-    
-    $individual_setting = get_post_meta($post->ID, '_premium_content_setting', true);
-    
-    if ($individual_setting === 'enabled') {
-        $post_states['premium_forced'] = 'Premium: Forced ON';
-    } elseif ($individual_setting === 'disabled') {
-        $post_states['premium_disabled'] = 'Premium: Forced OFF';
-    } else {
-        // Check if it would be enabled by other rules
-        $front = new Premium_Content_Front();
-        $reflection = new ReflectionMethod('Premium_Content_Front', 'should_show_premium_gate');
-        $reflection->setAccessible(true);
-        
-        // Temporarily set the global post
-        global $post;
-        $original_post = $post;
-        $GLOBALS['post'] = $post;
-        setup_postdata($post);
-        
-        $would_show = $reflection->invoke($front);
-        
-        // Restore original post
-        $GLOBALS['post'] = $original_post;
-        if ($original_post) {
-            setup_postdata($original_post);
-        }
-        
-        if ($would_show) {
-            $post_states['premium_auto'] = 'Premium: Auto ON';
-        }
-    }
-    
-    return $post_states;
+/**
+ * Add settings link on plugins page
+ */
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'premium_content_action_links');
+function premium_content_action_links($links) {
+    $settings_link = '<a href="' . admin_url('admin.php?page=premium-content') . '">' . __('Settings', 'premium-content') . '</a>';
+    array_unshift($links, $settings_link);
+    return $links;
 }
-add_filter('display_post_states', 'premium_content_add_post_state', 10, 2);
+
+/**
+ * Helper function to get plugin option
+ */
+function premium_content_get_option($option_name, $default = '') {
+    return get_option('premium_content_' . $option_name, $default);
+}
+
+/**
+ * Helper function to update plugin option
+ */
+function premium_content_update_option($option_name, $value) {
+    return update_option('premium_content_' . $option_name, $value);
+}
+
+/**
+ * Check if user has active subscription
+ */
+function premium_content_user_has_subscription($user_id = null) {
+    if (!$user_id) {
+        $user_id = get_current_user_id();
+    }
+    
+    if (!$user_id) {
+        return false;
+    }
+    
+    return Premium_Content_Subscription_Manager::user_has_active_subscription($user_id);
+}
+
+/**
+ * Get user's article view count for current month
+ */
+function premium_content_get_user_view_count($identifier = null) {
+    return Premium_Content_Metered_Paywall::get_view_count($identifier);
+}
+
+/**
+ * Check if content should be locked
+ */
+function premium_content_should_lock_content($post_id = null) {
+    if (!$post_id) {
+        $post_id = get_the_ID();
+    }
+    
+    return Premium_Content_Metered_Paywall::should_show_paywall($post_id);
+}
