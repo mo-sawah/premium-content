@@ -412,40 +412,82 @@
 }
 
 /* ===================================
-   Airtable-Style Pricing
+   Professional Pricing Page
    =================================== */
 
-.airtable-pricing-wrapper {
+.pro-pricing-wrapper {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 80px 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  padding: 60px 20px 80px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  background: #f9fafb;
 }
 
-/* Hero */
-.airtable-pricing-hero {
+/* Header */
+.pro-header {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 50px;
 }
 
-.airtable-pricing-hero h1 {
-  font-size: 36px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 12px 0;
+.pro-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px 0;
   letter-spacing: -0.02em;
 }
 
-.airtable-pricing-hero p {
-  font-size: 18px;
+.pro-header p {
+  font-size: 1.25rem;
   color: #6b7280;
-  margin: 0;
-  font-weight: 400;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
-/* Current Subscription */
-.airtable-current-subscription {
+/* Benefits Section */
+.pro-benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  margin-bottom: 60px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pro-benefit-item {
+  text-align: center;
+  padding: 20px;
+}
+
+.benefit-icon {
+  width: 60px;
+  height: 60px;
+  background: #dbeafe;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 1.5rem;
+}
+
+.pro-benefit-item h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.pro-benefit-item p {
+  font-size: 0.95rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Current Subscription Banner */
+.pro-current-subscription {
   max-width: 900px;
   margin: 0 auto 40px;
   padding: 16px 20px;
@@ -457,257 +499,364 @@
   gap: 12px;
 }
 
-.airtable-current-subscription svg {
+.pro-current-subscription svg {
   color: #16a34a;
   flex-shrink: 0;
 }
 
-.airtable-current-subscription strong {
+.pro-current-subscription strong {
   display: block;
   color: #166534;
   font-size: 15px;
   margin-bottom: 4px;
 }
 
-.airtable-current-subscription a {
+.pro-current-subscription a {
   color: #16a34a;
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
 }
 
-.airtable-current-subscription a:hover {
-  text-decoration: underline;
+/* Billing Toggle */
+.pro-billing-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 50px;
 }
 
-/* Plans Grid */
-.airtable-plans-grid {
+.toggle-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  transition: color 0.2s;
+}
+
+.toggle-label.pro-active {
+  color: #2563eb;
+}
+
+.pro-toggle-switch {
+  position: relative;
+  width: 56px;
+  height: 28px;
+  background: #e5e7eb;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pro-toggle-switch.pro-active {
+  background: #2563eb;
+}
+
+.pro-toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pro-toggle-switch.pro-active .pro-toggle-slider {
+  transform: translateX(28px);
+}
+
+.pro-savings-badge {
+  background: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Pricing Cards */
+.pro-pricing-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  margin-bottom: 80px;
 }
 
-/* Plan Card */
-.airtable-plan-card {
+.pro-pricing-card {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 32px;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  padding: 32px 28px;
   position: relative;
+  transition: all 0.3s ease;
 }
 
-.airtable-plan-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-
-.airtable-plan-card.popular {
-  border-color: #4f46e5;
-  border-width: 2px;
-}
-
-.airtable-plan-card.current {
-  border-color: #16a34a;
-  opacity: 0.8;
-}
-
-/* Popular Badge */
-.popular-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #4f46e5;
-  color: white;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-/* Plan Header */
-.plan-header {
-  margin-bottom: 24px;
-}
-
-.plan-header h2 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 8px 0;
-}
-
-.plan-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* Plan Price */
-.plan-price {
-  margin-bottom: 24px;
-}
-
-.price-display {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.price-currency {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.price-amount {
-  font-size: 48px;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1;
-}
-
-.price-period {
-  font-size: 16px;
-  color: #6b7280;
-  font-weight: 400;
-}
-
-.price-note {
-  font-size: 14px;
-  color: #9ca3af;
-  margin: 4px 0 0 0;
-}
-
-/* Plan Action */
-.plan-action {
-  margin-bottom: 28px;
-}
-
-.plan-button {
-  display: block;
-  width: 100%;
-  padding: 12px 20px;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-
-.plan-button.primary {
-  background: #4f46e5;
-  color: white;
-  border-color: #4f46e5;
-}
-
-.plan-button.primary:hover {
-  background: #4338ca;
-  border-color: #4338ca;
-}
-
-.plan-button.secondary {
-  background: white;
-  color: #1f2937;
+.pro-pricing-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   border-color: #d1d5db;
 }
 
-.plan-button.secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+.pro-pricing-card.pro-featured {
+  border: 2px solid #2563eb;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.1);
 }
 
-.plan-button.current {
+.pro-pricing-card.pro-current {
+  border-color: #16a34a;
+  opacity: 0.85;
+}
+
+.pro-popular-badge {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  background: #2563eb;
+  color: white;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 12px 12px 0 0;
+}
+
+.pro-card-content.has-badge {
+  margin-top: 20px;
+}
+
+.pro-plan-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.pro-plan-description {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+  min-height: 48px;
+  line-height: 1.5;
+}
+
+.pro-price-container {
+  margin-bottom: 20px;
+}
+
+.pro-price {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pro-price-currency {
+  font-size: 2rem;
+}
+
+.pro-price-amount {
+  display: inline;
+}
+
+.pro-price-period {
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+.pro-price-billing-note {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.pro-cta-button {
+  width: 100%;
+  padding: 14px 24px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  color: #374151;
+  margin-bottom: 12px;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+}
+
+.pro-cta-button:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.pro-cta-button.pro-primary {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.pro-cta-button.pro-primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.pro-cta-button.pro-current-btn {
   background: #f3f4f6;
   color: #9ca3af;
   cursor: not-allowed;
   border-color: #e5e7eb;
 }
 
-.signup-note {
+.pro-signup-link {
   text-align: center;
-  margin: 12px 0 0 0;
-  font-size: 13px;
   color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 24px;
 }
 
-.signup-note a {
-  color: #4f46e5;
+.pro-signup-link a {
+  color: #2563eb;
   text-decoration: none;
   font-weight: 500;
 }
 
-.signup-note a:hover {
+.pro-signup-link a:hover {
   text-decoration: underline;
 }
 
-/* Plan Features */
-.plan-features {
-  padding-top: 24px;
+.pro-features-header {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 16px;
+  padding-top: 20px;
   border-top: 1px solid #f3f4f6;
 }
 
-.features-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 16px 0;
-}
-
-.plan-features ul {
+.pro-features-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.plan-features li {
+.pro-feature-item {
+  padding: 10px 0;
+  color: #374151;
+  font-size: 0.9rem;
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 8px 0;
-  font-size: 14px;
-  color: #4b5563;
   line-height: 1.5;
 }
 
-.plan-features li svg {
-  color: #10b981;
+.pro-feature-item::before {
+  content: "✓";
+  color: #16a34a;
+  font-weight: bold;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
+/* FAQ Section */
+.pro-faq-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-top: 40px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.pro-faq-section h2 {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #111827;
+}
+
+.pro-faq-item {
+  margin-bottom: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pro-faq-question {
+  width: 100%;
+  padding: 20px 24px;
+  background: white;
+  border: none;
+  text-align: left;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+.pro-faq-question:hover {
+  background: #f9fafb;
+}
+
+.pro-faq-question::after {
+  content: "+";
+  font-size: 1.5rem;
+  color: #6b7280;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.pro-faq-question.pro-active::after {
+  transform: rotate(45deg);
+}
+
+.pro-faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  padding: 0 24px;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.pro-faq-answer.pro-active {
+  max-height: 500px;
+  padding: 0 24px 20px 24px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-  .airtable-pricing-wrapper {
-    padding: 60px 16px;
+  .pro-header h1 {
+    font-size: 2rem;
   }
 
-  .airtable-pricing-hero h1 {
-    font-size: 28px;
+  .pro-header p {
+    font-size: 1.125rem;
   }
 
-  .airtable-pricing-hero p {
-    font-size: 16px;
-  }
-
-  .airtable-plans-grid {
+  .pro-pricing-cards {
     grid-template-columns: 1fr;
-    gap: 20px;
   }
 
-  .price-amount {
-    font-size: 40px;
+  .pro-benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-price {
+    font-size: 2.5rem;
   }
 }
