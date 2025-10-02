@@ -1,0 +1,86 @@
+/* ===================================
+   dashboard.css - User Dashboard Styles
+   =================================== */
+
+/* Dashboard specific styles are already included in dashboard-page.php inline styles */
+/* This file can contain additional dashboard styles or overrides */
+
+/* Dashboard widget styles */
+.premium-dashboard-widget {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.premium-dashboard-widget h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Payment history table */
+.payment-history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-history-table th {
+  background: #f9fafb;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.payment-history-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.payment-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status badges */
+.payment-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.payment-status.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.payment-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.payment-status.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .payment-history-table {
+    font-size: 14px;
+  }
+
+  .payment-history-table th,
+  .payment-history-table td {
+    padding: 8px;
+  }
+}

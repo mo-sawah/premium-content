@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content Pro
  * Description: Advanced content monetization with metered paywall, subscriptions, and payment processing.
- * Version: 2.0.7
+ * Version: 2.0.8
  * Author: Mohamed Sawah
  * Requires PHP: 7.4
  */
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PREMIUM_CONTENT_VERSION', '2.0.7');
+define('PREMIUM_CONTENT_VERSION', '2.0.8');
 define('PREMIUM_CONTENT_PATH', plugin_dir_path(__FILE__));
 define('PREMIUM_CONTENT_URL', plugin_dir_url(__FILE__));
 
@@ -122,6 +122,25 @@ function premium_content_frontend_assets() {
             array(),
             PREMIUM_CONTENT_VERSION
         );
+    }
+
+    if (is_page('checkout')) {
+        wp_enqueue_script(
+            'premium-content-checkout',
+            PREMIUM_CONTENT_URL . 'assets/js/checkout.js',
+            array('jquery'),
+            PREMIUM_CONTENT_VERSION,
+            true
+        );
+
+        wp_localize_script('premium-content-checkout', 'premiumCheckout', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('premium_checkout'),
+            'strings' => array(
+                'processing' => __('Processing...', 'premium-content'),
+                'error' => __('An error occurred. Please try again.', 'premium-content'),
+            )
+        ));
     }
 }
 
