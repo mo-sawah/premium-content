@@ -291,6 +291,7 @@ class Premium_Content_Admin {
         add_submenu_page('premium-content', 'Subscribers', 'Subscribers', 'manage_options', 'premium-content-subscribers', array($this, 'render_subscribers_page'));
         add_submenu_page('premium-content', 'Email Collection', 'Emails', 'manage_options', 'premium-content-emails', array($this, 'render_emails_page'));
         add_submenu_page('premium-content', 'Settings', 'Settings', 'manage_options', 'premium-content-settings', array($this, 'render_settings_page'));
+        add_submenu_page('premium-content', 'Payment Gateways', 'Payments', 'manage_options', 'premium-content-payments', array($this, 'render_payments_page'));
     }
 
     /**
