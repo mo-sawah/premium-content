@@ -674,6 +674,14 @@ class Premium_Content_Admin {
                                     </select>
                                 </div>
                                 <div class="premium-form-group">
+                                    <label class="premium-label">Yearly Discount (optional)</label>
+                                    <div class="premium-input-group">
+                                        <input type="number" name="plan_yearly_discount" value="<?php echo $editing_plan ? esc_attr(get_post_meta($editing_plan->id, '_yearly_discount_percentage', true)) : ''; ?>" step="1" min="0" max="100" class="premium-input" placeholder="20">
+                                        <span class="input-suffix">%</span>
+                                    </div>
+                                    <p class="premium-description">If this is a yearly plan, show "Save X%" badge (e.g., 20)</p>
+                                </div>
+                                <div class="premium-form-group">
                                     <label class="premium-label">Status</label>
                                     <select name="plan_status" class="premium-select">
                                         <option value="active" <?php echo ($editing_plan && $editing_plan->status === 'active') ? 'selected' : ''; ?>>Active</option>
@@ -752,7 +760,17 @@ class Premium_Content_Admin {
             'status' => sanitize_text_field($_POST['plan_status'])
         );
         
-        Premium_Content_Subscription_Manager::save_plan($plan_data, $plan_id);
+        $saved_plan_id = Premium_Content_Subscription_Manager::save_plan($plan_data, $plan_id);
+        
+        // Save yearly discount as post meta
+        if ($saved_plan_id && isset($_POST['plan_yearly_discount'])) {
+            $discount = intval($_POST['plan_yearly_discount']);
+            if ($discount > 0 && $discount <= 100) {
+                update_post_meta($saved_plan_id, '_yearly_discount_percentage', $discount);
+            } else {
+                delete_post_meta($saved_plan_id, '_yearly_discount_percentage');
+            }
+        }
     }
 
     public function render_form_page() {
