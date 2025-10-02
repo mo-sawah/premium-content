@@ -85,7 +85,19 @@ if (!empty($yearly_plans) && !empty($monthly_plans)) {
         </div>
     <?php else: ?>
         <!-- Billing Toggle -->
-        <?php if (!empty($monthly_plans) && !empty($yearly_plans)): ?>
+        <?php
+        // Count plans by type to decide whether to show toggle
+        $has_monthly = false;
+        $has_yearly = false;
+
+        foreach ($plans as $plan) {
+            if ($plan->interval === 'monthly') $has_monthly = true;
+            if ($plan->interval === 'yearly') $has_yearly = true;
+        }
+        ?>
+
+        <!-- Billing Toggle - Only show if we have BOTH monthly and yearly plans -->
+        <?php if ($has_monthly && $has_yearly): ?>
         <div class="pro-billing-toggle">
             <span class="toggle-label" id="pro-monthly-label">Monthly</span>
             <div class="pro-toggle-switch" id="pro-billing-toggle">
@@ -117,8 +129,10 @@ if (!empty($yearly_plans) && !empty($monthly_plans)) {
                 $monthly_price = $is_yearly ? round($plan->price / 12, 2) : $plan->price;
             ?>
             <div class="pro-pricing-card <?php echo $is_popular ? 'pro-featured' : ''; ?> <?php echo $is_current ? 'pro-current' : ''; ?>" 
-                 data-interval="<?php echo esc_attr($plan->interval); ?>"
-                 style="<?php echo ($is_yearly) ? '' : 'display: none;'; ?>">
+                data-interval="<?php echo esc_attr($plan->interval); ?>"
+                <?php if ($has_monthly && $has_yearly): ?>
+                    style="<?php echo ($is_yearly) ? '' : 'display: none;'; ?>"
+                <?php endif; ?>>
                 
                 <?php if ($is_popular): ?>
                     <div class="pro-popular-badge">Most popular</div>
