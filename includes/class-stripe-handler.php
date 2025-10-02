@@ -1,110 +1,323 @@
 <?php
 /**
- * class-stripe-handler.php
- * Stripe payment processing (Phase 2 implementation)
+ * Handles Stripe payment processing and webhooks
  */
 class Premium_Content_Stripe_Handler {
-    public function __construct() {
-        // Stripe integration hooks will be added in Phase 2
-    }
-}
 
-/**
- * class-paypal-handler.php  
- * PayPal payment processing (Phase 2 implementation)
- */
-class Premium_Content_PayPal_Handler {
-    public function __construct() {
-        // PayPal integration hooks will be added in Phase 2
-    }
-}
+    private $api_key;
+    private $test_mode;
 
-/**
- * class-user-dashboard.php
- * User account dashboard (Phase 2 implementation)
- */
-class Premium_Content_User_Dashboard {
     public function __construct() {
-        add_shortcode('premium_account_dashboard', array($this, 'render_dashboard'));
-        add_shortcode('premium_pricing_table', array($this, 'render_pricing_table'));
-        add_shortcode('premium_checkout', array($this, 'render_checkout'));
-        add_shortcode('premium_thank_you', array($this, 'render_thank_you'));
+        $this->test_mode = premium_content_get_option('stripe_test_mode', '1') === '1';
+        $this->api_key = $this->test_mode 
+            ? premium_content_get_option('stripe_test_secret_key', '')
+            : premium_content_get_option('stripe_live_secret_key', '');
+
+        // AJAX handlers
+        add_action('wp_ajax_premium_create_stripe_checkout', array($this, 'ajax_create_checkout'));
+        add_action('wp_ajax_nopriv_premium_create_stripe_checkout', array($this, 'ajax_create_checkout'));
+        
+        // Webhook handler
+        add_action('wp_ajax_premium_stripe_webhook', array($this, 'handle_webhook'));
+        add_action('wp_ajax_nopriv_premium_stripe_webhook', array($this, 'handle_webhook'));
     }
-    
-    public function render_dashboard() {
-        if (!is_user_logged_in()) {
-            return '<p>Please <a href="' . wp_login_url(get_permalink()) . '">login</a> to view your account.</p>';
+
+    /**
+     * Create Stripe Checkout Session
+     */
+    public function ajax_create_checkout() {
+        check_ajax_referer('premium_checkout', 'nonce');
+
+        if (empty($this->api_key)) {
+            wp_send_json_error('Stripe is not configured');
         }
-        
-        ob_start();
-        ?>
-        <div class="premium-user-dashboard">
-            <h2>My Account</h2>
-            <p>Account dashboard coming soon in Phase 2...</p>
-        </div>
-        <?php
-        return ob_get_clean();
-    }
-    
-    public function render_pricing_table() {
-        $plans = Premium_Content_Subscription_Manager::get_plans('active');
-        
-        ob_start();
-        ?>
-        <div class="premium-pricing-wrapper">
-            <div class="premium-pricing-header">
-                <h2>Choose Your Plan</h2>
-                <p>Get unlimited access to all premium content</p>
-            </div>
-            <div class="premium-pricing-table">
-                <?php foreach ($plans as $plan): 
-                    $features = json_decode($plan->features, true);
-                ?>
-                <div class="premium-pricing-plan">
-                    <div class="plan-name"><?php echo esc_html($plan->name); ?></div>
-                    <div class="plan-price">
-                        <span class="currency">$</span>
-                        <span class="amount"><?php echo number_format($plan->price, 0); ?></span>
-                        <span class="period">/<?php echo esc_html($plan->interval); ?></span>
-                    </div>
-                    <?php if ($plan->description): ?>
-                    <p class="plan-description"><?php echo esc_html($plan->description); ?></p>
-                    <?php endif; ?>
-                    
-                    <?php if ($features): ?>
-                    <ul class="plan-features">
-                        <?php foreach ($features as $feature): ?>
-                        <li><?php echo esc_html($feature); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <?php endif; ?>
-                    
-                    <a href="<?php echo esc_url(add_query_arg('plan', $plan->id, get_permalink(get_option('premium_content_page_checkout')))); ?>" class="plan-button">
-                        Choose Plan
-                    </a>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
-    }
-    
-    public function render_checkout() {
-        return '<div class="premium-checkout"><p>Checkout system coming in Phase 2...</p></div>';
-    }
-    
-    public function render_thank_you() {
-        return '<div class="premium-thank-you"><h2>Thank You!</h2><p>Your subscription is being processed...</p></div>';
-    }
-}
 
-/**
- * class-page-generator.php
- * Handles dynamic page generation and templates (Phase 2 implementation)
- */
-class Premium_Content_Page_Generator {
-    public function __construct() {
-        // Page template hooks will be added in Phase 2
+        $plan_id = isset($_POST['plan_id']) ? intval($_POST['plan_id']) : 0;
+        $plan = Premium_Content_Subscription_Manager::get_plan($plan_id);
+
+        if (!$plan) {
+            wp_send_json_error('Invalid plan');
+        }
+
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            wp_send_json_error('You must be logged in');
+        }
+
+        $user = wp_get_current_user();
+
+        try {
+            // Create Stripe Checkout Session
+            $session_data = array(
+                'payment_method_types' => array('card'),
+                'line_items' => array(array(
+                    'price_data' => array(
+                        'currency' => 'usd',
+                        'product_data' => array(
+                            'name' => $plan->name,
+                            'description' => $plan->description,
+                        ),
+                        'unit_amount' => intval($plan->price * 100), // Convert to cents
+                        'recurring' => $plan->interval !== 'lifetime' ? array(
+                            'interval' => $plan->interval === 'yearly' ? 'year' : 'month'
+                        ) : null,
+                    ),
+                    'quantity' => 1,
+                )),
+                'mode' => $plan->interval === 'lifetime' ? 'payment' : 'subscription',
+                'success_url' => add_query_arg('session_id', '{CHECKOUT_SESSION_ID}', get_permalink(get_option('premium_content_page_thank_you'))),
+                'cancel_url' => get_permalink(get_option('premium_content_page_pricing')),
+                'customer_email' => $user->user_email,
+                'metadata' => array(
+                    'user_id' => $user_id,
+                    'plan_id' => $plan_id,
+                    'site_url' => home_url(),
+                ),
+            );
+
+            // Remove recurring for lifetime plans
+            if ($plan->interval === 'lifetime') {
+                unset($session_data['line_items'][0]['price_data']['recurring']);
+            }
+
+            $session = $this->stripe_request('checkout/sessions', $session_data, 'POST');
+
+            if (isset($session['id'])) {
+                wp_send_json_success(array(
+                    'session_id' => $session['id'],
+                    'url' => $session['url']
+                ));
+            } else {
+                wp_send_json_error('Failed to create checkout session');
+            }
+
+        } catch (Exception $e) {
+            $this->log_error('Checkout creation failed: ' . $e->getMessage());
+            wp_send_json_error($e->getMessage());
+        }
+    }
+
+    /**
+     * Handle Stripe Webhook
+     */
+    public function handle_webhook() {
+        $payload = @file_get_contents('php://input');
+        $sig_header = isset($_SERVER['HTTP_STRIPE_SIGNATURE']) ? $_SERVER['HTTP_STRIPE_SIGNATURE'] : '';
+        
+        $webhook_secret = $this->test_mode
+            ? premium_content_get_option('stripe_test_webhook_secret', '')
+            : premium_content_get_option('stripe_live_webhook_secret', '');
+
+        if (empty($webhook_secret)) {
+            $this->log_error('Webhook secret not configured');
+            http_response_code(400);
+            exit;
+        }
+
+        try {
+            $event = $this->verify_webhook_signature($payload, $sig_header, $webhook_secret);
+            
+            $this->log_debug('Webhook received: ' . $event['type']);
+
+            switch ($event['type']) {
+                case 'checkout.session.completed':
+                    $this->handle_checkout_completed($event['data']['object']);
+                    break;
+
+                case 'customer.subscription.updated':
+                    $this->handle_subscription_updated($event['data']['object']);
+                    break;
+
+                case 'customer.subscription.deleted':
+                    $this->handle_subscription_cancelled($event['data']['object']);
+                    break;
+
+                case 'invoice.payment_succeeded':
+                    $this->handle_payment_succeeded($event['data']['object']);
+                    break;
+
+                case 'invoice.payment_failed':
+                    $this->handle_payment_failed($event['data']['object']);
+                    break;
+            }
+
+            http_response_code(200);
+            echo json_encode(array('success' => true));
+
+        } catch (Exception $e) {
+            $this->log_error('Webhook error: ' . $e->getMessage());
+            http_response_code(400);
+            echo json_encode(array('error' => $e->getMessage()));
+        }
+
+        exit;
+    }
+
+    /**
+     * Handle checkout completed
+     */
+    private function handle_checkout_completed($session) {
+        $user_id = isset($session['metadata']['user_id']) ? intval($session['metadata']['user_id']) : 0;
+        $plan_id = isset($session['metadata']['plan_id']) ? intval($session['metadata']['plan_id']) : 0;
+
+        if (!$user_id || !$plan_id) {
+            $this->log_error('Missing user_id or plan_id in checkout session');
+            return;
+        }
+
+        $subscription_id = isset($session['subscription']) ? $session['subscription'] : null;
+        
+        $transaction_data = array(
+            'transaction_id' => $session['id'],
+            'stripe_subscription_id' => $subscription_id,
+        );
+
+        Premium_Content_Subscription_Manager::create_subscription($user_id, $plan_id, 'stripe', $transaction_data);
+        
+        $this->log_debug('Subscription created for user ' . $user_id . ' with plan ' . $plan_id);
+    }
+
+    /**
+     * Handle subscription updated
+     */
+    private function handle_subscription_updated($subscription) {
+        // Handle subscription changes (upgrades, downgrades, etc.)
+        $this->log_debug('Subscription updated: ' . $subscription['id']);
+    }
+
+    /**
+     * Handle subscription cancelled
+     */
+    private function handle_subscription_cancelled($subscription) {
+        global $wpdb;
+        
+        $table = $wpdb->prefix . 'premium_subscriptions';
+        
+        $wpdb->update(
+            $table,
+            array('status' => 'cancelled', 'cancelled_at' => current_time('mysql')),
+            array('stripe_subscription_id' => $subscription['id']),
+            array('%s', '%s'),
+            array('%s')
+        );
+        
+        $this->log_debug('Subscription cancelled: ' . $subscription['id']);
+    }
+
+    /**
+     * Handle payment succeeded
+     */
+    private function handle_payment_succeeded($invoice) {
+        $this->log_debug('Payment succeeded for invoice: ' . $invoice['id']);
+    }
+
+    /**
+     * Handle payment failed
+     */
+    private function handle_payment_failed($invoice) {
+        $this->log_error('Payment failed for invoice: ' . $invoice['id']);
+    }
+
+    /**
+     * Make Stripe API request
+     */
+    private function stripe_request($endpoint, $data = array(), $method = 'GET') {
+        $url = 'https://api.stripe.com/v1/' . $endpoint;
+        
+        $args = array(
+            'method' => $method,
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $this->api_key,
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            ),
+            'timeout' => 30,
+        );
+
+        if ($method === 'POST' && !empty($data)) {
+            $args['body'] = http_build_query($data);
+        }
+
+        $response = wp_remote_request($url, $args);
+
+        if (is_wp_error($response)) {
+            throw new Exception($response->get_error_message());
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $decoded = json_decode($body, true);
+
+        if (isset($decoded['error'])) {
+            throw new Exception($decoded['error']['message']);
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Verify webhook signature
+     */
+    private function verify_webhook_signature($payload, $sig_header, $secret) {
+        // Simple signature verification (production should use Stripe's library)
+        $elements = explode(',', $sig_header);
+        $timestamp = null;
+        $signatures = array();
+
+        foreach ($elements as $element) {
+            list($key, $value) = explode('=', $element, 2);
+            if ($key === 't') {
+                $timestamp = $value;
+            } elseif ($key === 'v1') {
+                $signatures[] = $value;
+            }
+        }
+
+        if (!$timestamp || empty($signatures)) {
+            throw new Exception('Invalid signature format');
+        }
+
+        $signed_payload = $timestamp . '.' . $payload;
+        $expected_signature = hash_hmac('sha256', $signed_payload, $secret);
+
+        foreach ($signatures as $signature) {
+            if (hash_equals($expected_signature, $signature)) {
+                return json_decode($payload, true);
+            }
+        }
+
+        throw new Exception('Invalid signature');
+    }
+
+    /**
+     * Test Stripe connection
+     */
+    public static function test_connection() {
+        $handler = new self();
+        
+        if (empty($handler->api_key)) {
+            return array('success' => false, 'message' => 'API key not configured');
+        }
+
+        try {
+            $handler->stripe_request('balance');
+            return array('success' => true, 'message' => 'Connection successful');
+        } catch (Exception $e) {
+            return array('success' => false, 'message' => $e->getMessage());
+        }
+    }
+
+    /**
+     * Log debug message
+     */
+    private function log_debug($message) {
+        if (premium_content_get_option('debug_mode', '0') === '1') {
+            error_log('Premium Content Stripe: ' . $message);
+        }
+    }
+
+    /**
+     * Log error message
+     */
+    private function log_error($message) {
+        error_log('Premium Content Stripe Error: ' . $message);
     }
 }

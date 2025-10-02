@@ -4,10 +4,270 @@
  */
 class Premium_Content_Admin {
 
+    /**
+     * Render Payment Gateways Page
+     */
+    public function render_payments_page() {
+        if (isset($_POST['premium_save_payments']) && check_admin_referer('premium_payment_settings')) {
+            $this->save_payment_settings();
+            echo '<div class="notice notice-success"><p>Payment settings saved!</p></div>';
+        }
+
+        // Stripe settings
+        $stripe_enabled = premium_content_get_option('stripe_enabled', '0');
+        $stripe_test_mode = premium_content_get_option('stripe_test_mode', '1');
+        $stripe_test_pk = premium_content_get_option('stripe_test_publishable_key', '');
+        $stripe_test_sk = premium_content_get_option('stripe_test_secret_key', '');
+        $stripe_test_webhook = premium_content_get_option('stripe_test_webhook_secret', '');
+        $stripe_live_pk = premium_content_get_option('stripe_live_publishable_key', '');
+        $stripe_live_sk = premium_content_get_option('stripe_live_secret_key', '');
+        $stripe_live_webhook = premium_content_get_option('stripe_live_webhook_secret', '');
+
+        // PayPal settings
+        $paypal_enabled = premium_content_get_option('paypal_enabled', '0');
+        $paypal_test_mode = premium_content_get_option('paypal_test_mode', '1');
+        $paypal_client_id = premium_content_get_option('paypal_client_id', '');
+        $paypal_client_secret = premium_content_get_option('paypal_client_secret', '');
+
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-cart"></span>
+                Payment Gateways
+            </h1>
+
+            <form method="post" class="premium-settings-form">
+                <?php wp_nonce_field('premium_payment_settings'); ?>
+
+                <!-- Stripe Settings -->
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>Stripe Configuration</h2>
+                        <label class="premium-toggle">
+                            <input type="checkbox" name="stripe_enabled" value="1" <?php checked($stripe_enabled, '1'); ?>>
+                            <span>Enable Stripe</span>
+                        </label>
+                    </div>
+                    <div class="premium-card-body" style="<?php echo $stripe_enabled !== '1' ? 'opacity: 0.5;' : ''; ?>">
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="stripe_test_mode" value="1" <?php checked($stripe_test_mode, '1'); ?>>
+                                <span>Test Mode</span>
+                            </label>
+                            <p class="premium-description">Use test API keys for development</p>
+                        </div>
+
+                        <h3 style="margin: 20px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Test API Keys</h3>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Test Publishable Key</label>
+                            <input type="text" name="stripe_test_publishable_key" value="<?php echo esc_attr($stripe_test_pk); ?>" class="premium-input" placeholder="pk_test_...">
+                        </div>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Test Secret Key</label>
+                            <input type="password" name="stripe_test_secret_key" value="<?php echo esc_attr($stripe_test_sk); ?>" class="premium-input" placeholder="sk_test_...">
+                        </div>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Test Webhook Secret</label>
+                            <input type="password" name="stripe_test_webhook_secret" value="<?php echo esc_attr($stripe_test_webhook); ?>" class="premium-input" placeholder="whsec_...">
+                            <p class="premium-description">
+                                Webhook URL: <code><?php echo admin_url('admin-ajax.php?action=premium_stripe_webhook'); ?></code>
+                            </p>
+                        </div>
+
+                        <h3 style="margin: 20px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Live API Keys</h3>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Live Publishable Key</label>
+                            <input type="text" name="stripe_live_publishable_key" value="<?php echo esc_attr($stripe_live_pk); ?>" class="premium-input" placeholder="pk_live_...">
+                        </div>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Live Secret Key</label>
+                            <input type="password" name="stripe_live_secret_key" value="<?php echo esc_attr($stripe_live_sk); ?>" class="premium-input" placeholder="sk_live_...">
+                        </div>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Live Webhook Secret</label>
+                            <input type="password" name="stripe_live_webhook_secret" value="<?php echo esc_attr($stripe_live_webhook); ?>" class="premium-input" placeholder="whsec_...">
+                        </div>
+
+                        <div class="premium-form-group">
+                            <button type="button" id="test-stripe" class="button">Test Connection</button>
+                            <span id="stripe-test-result"></span>
+                        </div>
+
+                        <div class="premium-alert premium-alert-info">
+                            <strong>Setup Instructions:</strong>
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li>Go to <a href="https://dashboard.stripe.com/apikeys" target="_blank">Stripe Dashboard</a></li>
+                                <li>Copy your API keys</li>
+                                <li>Create a webhook endpoint with URL above</li>
+                                <li>Select events: checkout.session.completed, customer.subscription.*</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PayPal Settings -->
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>PayPal Configuration</h2>
+                        <label class="premium-toggle">
+                            <input type="checkbox" name="paypal_enabled" value="1" <?php checked($paypal_enabled, '1'); ?>>
+                            <span>Enable PayPal</span>
+                        </label>
+                    </div>
+                    <div class="premium-card-body" style="<?php echo $paypal_enabled !== '1' ? 'opacity: 0.5;' : ''; ?>">
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="paypal_test_mode" value="1" <?php checked($paypal_test_mode, '1'); ?>>
+                                <span>Sandbox Mode</span>
+                            </label>
+                            <p class="premium-description">Use sandbox for testing</p>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Client ID</label>
+                            <input type="text" name="paypal_client_id" value="<?php echo esc_attr($paypal_client_id); ?>" class="premium-input">
+                            <p class="premium-description">Works for both sandbox and live</p>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Client Secret</label>
+                            <input type="password" name="paypal_client_secret" value="<?php echo esc_attr($paypal_client_secret); ?>" class="premium-input">
+                        </div>
+
+                        <div class="premium-form-group">
+                            <button type="button" id="test-paypal" class="button">Test Connection</button>
+                            <span id="paypal-test-result"></span>
+                        </div>
+
+                        <div class="premium-alert premium-alert-info">
+                            <strong>Setup Instructions:</strong>
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li>Go to <a href="https://developer.paypal.com/dashboard/" target="_blank">PayPal Developer</a></li>
+                                <li>Create an app (sandbox or live)</li>
+                                <li>Copy Client ID and Secret</li>
+                                <li>Configure webhook URL: <code><?php echo admin_url('admin-ajax.php?action=premium_paypal_webhook'); ?></code></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-form-actions">
+                    <button type="submit" name="premium_save_payments" class="button button-primary button-large">Save Payment Settings</button>
+                </div>
+            </form>
+        </div>
+
+        <script>
+        jQuery(document).ready(function($) {
+            $('#test-stripe').on('click', function() {
+                var $btn = $(this);
+                var $result = $('#stripe-test-result');
+                $btn.prop('disabled', true).text('Testing...');
+                $result.html('');
+
+                $.post(ajaxurl, {
+                    action: 'premium_test_stripe',
+                    nonce: '<?php echo wp_create_nonce('premium_content_admin'); ?>'
+                }, function(response) {
+                    $btn.prop('disabled', false).text('Test Connection');
+                    if (response.success) {
+                        $result.html('<span style="color: #00a32a; font-weight: bold;">✓ ' + response.data.message + '</span>');
+                    } else {
+                        $result.html('<span style="color: #d63638; font-weight: bold;">✗ ' + response.data + '</span>');
+                    }
+                });
+            });
+
+            $('#test-paypal').on('click', function() {
+                var $btn = $(this);
+                var $result = $('#paypal-test-result');
+                $btn.prop('disabled', true).text('Testing...');
+                $result.html('');
+
+                $.post(ajaxurl, {
+                    action: 'premium_test_paypal',
+                    nonce: '<?php echo wp_create_nonce('premium_content_admin'); ?>'
+                }, function(response) {
+                    $btn.prop('disabled', false).text('Test Connection');
+                    if (response.success) {
+                        $result.html('<span style="color: #00a32a; font-weight: bold;">✓ ' + response.data.message + '</span>');
+                    } else {
+                        $result.html('<span style="color: #d63638; font-weight: bold;">✗ ' + response.data + '</span>');
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Save payment settings
+     */
+    private function save_payment_settings() {
+        // Stripe
+        premium_content_update_option('stripe_enabled', isset($_POST['stripe_enabled']) ? '1' : '0');
+        premium_content_update_option('stripe_test_mode', isset($_POST['stripe_test_mode']) ? '1' : '0');
+        premium_content_update_option('stripe_test_publishable_key', sanitize_text_field($_POST['stripe_test_publishable_key']));
+        premium_content_update_option('stripe_test_secret_key', sanitize_text_field($_POST['stripe_test_secret_key']));
+        premium_content_update_option('stripe_test_webhook_secret', sanitize_text_field($_POST['stripe_test_webhook_secret']));
+        premium_content_update_option('stripe_live_publishable_key', sanitize_text_field($_POST['stripe_live_publishable_key']));
+        premium_content_update_option('stripe_live_secret_key', sanitize_text_field($_POST['stripe_live_secret_key']));
+        premium_content_update_option('stripe_live_webhook_secret', sanitize_text_field($_POST['stripe_live_webhook_secret']));
+
+        // PayPal
+        premium_content_update_option('paypal_enabled', isset($_POST['paypal_enabled']) ? '1' : '0');
+        premium_content_update_option('paypal_test_mode', isset($_POST['paypal_test_mode']) ? '1' : '0');
+        premium_content_update_option('paypal_client_id', sanitize_text_field($_POST['paypal_client_id']));
+        premium_content_update_option('paypal_client_secret', sanitize_text_field($_POST['paypal_client_secret']));
+    }
+
+    /**
+     * AJAX: Test Stripe connection
+     */
+    public function ajax_test_stripe() {
+        check_ajax_referer('premium_content_admin', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $result = Premium_Content_Stripe_Handler::test_connection();
+        
+        if ($result['success']) {
+            wp_send_json_success($result);
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+
+    /**
+     * AJAX: Test PayPal connection
+     */
+    public function ajax_test_paypal() {
+        check_ajax_referer('premium_content_admin', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $result = Premium_Content_PayPal_Handler::test_connection();
+        
+        if ($result['success']) {
+            wp_send_json_success($result);
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_notices', array($this, 'admin_notices'));
+
+        // In Premium_Content_Admin __construct(), add:
+        add_action('wp_ajax_premium_test_stripe', array($this, 'ajax_test_stripe'));
+        add_action('wp_ajax_premium_test_paypal', array($this, 'ajax_test_paypal'));
     }
 
     /**
