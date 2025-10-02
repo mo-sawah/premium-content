@@ -173,23 +173,19 @@ class Premium_Content_Installer {
         $pages = array(
             'pricing' => array(
                 'title' => 'Pricing Plans',
-                'content' => '[premium_pricing_table]',
-                'template' => 'page-pricing.php'
+                'content' => '[premium_pricing_table]', // ✓ Correct
             ),
             'checkout' => array(
                 'title' => 'Checkout',
-                'content' => '[premium_checkout]',
-                'template' => 'page-checkout.php'
+                'content' => '[premium_checkout]', // ✓ Correct
             ),
             'account' => array(
                 'title' => 'My Account',
-                'content' => '[premium_account_dashboard]',
-                'template' => 'page-account.php'
+                'content' => '[premium_account_dashboard]', // ✓ Correct
             ),
             'thank-you' => array(
                 'title' => 'Thank You',
-                'content' => '[premium_thank_you]',
-                'template' => 'page-thankyou.php'
+                'content' => '[premium_thank_you]', // ✓ Correct
             )
         );
 
