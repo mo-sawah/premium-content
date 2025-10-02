@@ -14,6 +14,25 @@ class Premium_Content_Subscription_Manager {
     }
 
     /**
+     * Verify AJAX request with proper nonce and capability checks
+     */
+    private static function verify_ajax_request($action = 'premium_content_admin', $capability = 'read') {
+        // Check nonce
+        if (!check_ajax_referer($action, 'nonce', false)) {
+            wp_send_json_error('Invalid security token');
+            exit;
+        }
+        
+        // Check user capability
+        if (!current_user_can($capability)) {
+            wp_send_json_error('Insufficient permissions');
+            exit;
+        }
+        
+        return true;
+    }
+
+    /**
      * Check if user has active subscription
      */
     public static function user_has_active_subscription($user_id = null) {

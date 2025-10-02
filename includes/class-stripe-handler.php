@@ -254,16 +254,23 @@ class Premium_Content_Stripe_Handler {
     }
 
     /**
-     * Verify webhook signature
+     * Verify webhook signature (IMPROVED VERSION)
      */
     private function verify_webhook_signature($payload, $sig_header, $secret) {
-        // Simple signature verification (production should use Stripe's library)
+        // Prevent timing attacks
+        if (empty($sig_header) || empty($secret)) {
+            throw new Exception('Missing signature or secret');
+        }
+        
         $elements = explode(',', $sig_header);
         $timestamp = null;
         $signatures = array();
 
         foreach ($elements as $element) {
-            list($key, $value) = explode('=', $element, 2);
+            $parts = explode('=', $element, 2);
+            if (count($parts) !== 2) continue;
+            
+            list($key, $value) = $parts;
             if ($key === 't') {
                 $timestamp = $value;
             } elseif ($key === 'v1') {
@@ -274,17 +281,29 @@ class Premium_Content_Stripe_Handler {
         if (!$timestamp || empty($signatures)) {
             throw new Exception('Invalid signature format');
         }
+        
+        // Check timestamp tolerance (5 minutes)
+        $current_time = time();
+        if (abs($current_time - $timestamp) > 300) {
+            throw new Exception('Timestamp too old');
+        }
 
         $signed_payload = $timestamp . '.' . $payload;
         $expected_signature = hash_hmac('sha256', $signed_payload, $secret);
 
+        $signature_valid = false;
         foreach ($signatures as $signature) {
             if (hash_equals($expected_signature, $signature)) {
-                return json_decode($payload, true);
+                $signature_valid = true;
+                break;
             }
         }
+        
+        if (!$signature_valid) {
+            throw new Exception('Invalid signature');
+        }
 
-        throw new Exception('Invalid signature');
+        return json_decode($payload, true);
     }
 
     /**

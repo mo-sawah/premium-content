@@ -20,9 +20,24 @@ class Premium_Content_Post_Meta {
      * Add meta box to post editor ONLY
      */
     public function add_meta_box() {
-        // Multiple safety checks
+        // CRITICAL: Multiple safety checks to prevent loading on all admin pages
+        if (!is_admin()) {
+            return;
+        }
+        
         $screen = get_current_screen();
-        if (!$screen || $screen->base !== 'post') {
+        if (!$screen) {
+            return;
+        }
+        
+        // ONLY on post edit screen
+        if ($screen->base !== 'post' || $screen->post_type !== 'post') {
+            return;
+        }
+        
+        // Additional check: must be editing an actual post
+        global $post;
+        if (!$post || !isset($post->ID)) {
             return;
         }
         

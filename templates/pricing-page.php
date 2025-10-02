@@ -1,9 +1,9 @@
 <?php
 /**
- * Template: Pricing Page - Professional Design
+ * Template: Pricing Page - Modern Professional Design
+ * Version: 2.0 - Complete Redesign
  */
 
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -13,62 +13,67 @@ $user_id = get_current_user_id();
 $has_subscription = Premium_Content_Subscription_Manager::user_has_active_subscription($user_id);
 $current_subscription = $has_subscription ? Premium_Content_Subscription_Manager::get_user_subscription($user_id) : null;
 
-// Separate plans by billing interval
-$monthly_plans = array();
-$yearly_plans = array();
-$lifetime_plans = array();
+// Organize plans by interval
+$plans_by_interval = [
+    'monthly' => [],
+    'yearly' => [],
+    'lifetime' => []
+];
 
 foreach ($plans as $plan) {
-    if ($plan->interval === 'monthly') {
-        $monthly_plans[] = $plan;
-    } elseif ($plan->interval === 'yearly') {
-        $yearly_plans[] = $plan;
-    } else {
-        $lifetime_plans[] = $plan;
+    if (isset($plans_by_interval[$plan->interval])) {
+        $plans_by_interval[$plan->interval][] = $plan;
     }
 }
 
-// Calculate savings percentage
-$yearly_discount = 0;
-if (!empty($yearly_plans) && !empty($monthly_plans)) {
-    // Find matching plans
-    foreach ($yearly_plans as $yearly_plan) {
-        $yearly_discount = get_post_meta($yearly_plan->id, '_yearly_discount_percentage', true);
-        if ($yearly_discount) break;
-    }
+// Determine if we should show the toggle
+$has_monthly = !empty($plans_by_interval['monthly']);
+$has_yearly = !empty($plans_by_interval['yearly']);
+$show_toggle = $has_monthly && $has_yearly;
+
+// Calculate savings for display
+$yearly_savings = 0;
+if ($has_monthly && $has_yearly) {
+    $monthly_plan = $plans_by_interval['monthly'][0];
+    $yearly_plan = $plans_by_interval['yearly'][0];
+    $monthly_annual = $monthly_plan->price * 12;
+    $yearly_savings = round((($monthly_annual - $yearly_plan->price) / $monthly_annual) * 100);
 }
 ?>
 
-<div class="pro-pricing-wrapper">
-    <!-- Header -->
-    <div class="pro-header">
-        <h1>Choose the perfect plan for you</h1>
-        <p>Get started with our flexible pricing options designed to scale with your needs</p>
+<div class="pcp-pricing-wrapper">
+    <!-- Hero Section -->
+    <div class="pcp-hero">
+        <h1>Choose Your Perfect Plan</h1>
+        <p>Get started with flexible pricing designed to scale with your needs</p>
     </div>
 
-    <!-- Benefits Section -->
-    <div class="pro-benefits">
-        <div class="pro-benefit-item">
-            <div class="benefit-icon">🚀</div>
-            <h3>Instant Access</h3>
-            <p>Get immediate access to all premium content upon subscription</p>
+    <!-- Trust Badges -->
+    <div class="pcp-trust-badges">
+        <div class="trust-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+            </svg>
+            <span>Secure Payment</span>
         </div>
-        <div class="pro-benefit-item">
-            <div class="benefit-icon">🔒</div>
-            <h3>Secure Payment</h3>
-            <p>Your data is protected with enterprise-grade security</p>
+        <div class="trust-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <span>Cancel Anytime</span>
         </div>
-        <div class="pro-benefit-item">
-            <div class="benefit-icon">💬</div>
-            <h3>24/7 Support</h3>
-            <p>Our team is always here to help you succeed</p>
+        <div class="trust-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+            </svg>
+            <span>Money-Back Guarantee</span>
         </div>
     </div>
 
     <?php if ($has_subscription && $current_subscription): 
         $current_plan = Premium_Content_Subscription_Manager::get_plan($current_subscription->plan_id);
     ?>
-        <div class="pro-current-subscription">
+        <div class="pcp-current-subscription">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
@@ -80,232 +85,811 @@ if (!empty($yearly_plans) && !empty($monthly_plans)) {
     <?php endif; ?>
 
     <?php if (empty($plans)): ?>
-        <div class="pro-no-plans">
-            <p>No subscription plans are currently available.</p>
+        <div class="pcp-no-plans">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <p>No subscription plans are currently available. Please check back soon!</p>
         </div>
     <?php else: ?>
+        
+        <?php if ($show_toggle): ?>
         <!-- Billing Toggle -->
-        <?php
-        // Count plans by type to decide whether to show toggle
-        $has_monthly = false;
-        $has_yearly = false;
-
-        foreach ($plans as $plan) {
-            if ($plan->interval === 'monthly') $has_monthly = true;
-            if ($plan->interval === 'yearly') $has_yearly = true;
-        }
-        ?>
-
-        <!-- Billing Toggle - Only show if we have BOTH monthly and yearly plans -->
-        <?php if ($has_monthly && $has_yearly): ?>
-        <div class="pro-billing-toggle">
-            <span class="toggle-label" id="pro-monthly-label">Monthly</span>
-            <div class="pro-toggle-switch" id="pro-billing-toggle">
-                <div class="pro-toggle-slider"></div>
-            </div>
-            <span class="toggle-label pro-active" id="pro-yearly-label">Yearly</span>
-            <?php if ($yearly_discount): ?>
-                <span class="pro-savings-badge">Save <?php echo intval($yearly_discount); ?>%</span>
-            <?php endif; ?>
+        <div class="pcp-billing-toggle">
+            <button class="toggle-option" data-interval="monthly" id="monthly-toggle">
+                Monthly
+            </button>
+            <button class="toggle-option active" data-interval="yearly" id="yearly-toggle">
+                Yearly
+                <?php if ($yearly_savings > 0): ?>
+                    <span class="savings-badge">Save <?php echo $yearly_savings; ?>%</span>
+                <?php endif; ?>
+            </button>
         </div>
         <?php endif; ?>
 
         <!-- Pricing Cards -->
-        <div class="pro-pricing-cards">
+        <div class="pcp-pricing-grid <?php echo count($plans) === 2 ? 'two-col' : ''; ?>">
             <?php 
-            $all_plans = array_merge($monthly_plans, $yearly_plans, $lifetime_plans);
-            $plan_count = count($all_plans);
+            $all_intervals = ['monthly', 'yearly', 'lifetime'];
+            $plan_index = 0;
             
-            foreach ($all_plans as $index => $plan): 
-                $features = json_decode($plan->features, true);
-                $is_popular = ($index === 1 && $plan_count >= 3); // Middle plan
-                $is_current = $has_subscription && $current_subscription && $current_subscription->plan_id == $plan->id;
-                $is_free = ($plan->price == 0);
-                $is_monthly = ($plan->interval === 'monthly');
-                $is_yearly = ($plan->interval === 'yearly');
-                $is_lifetime = ($plan->interval === 'lifetime');
+            foreach ($all_intervals as $interval):
+                if (empty($plans_by_interval[$interval])) continue;
                 
-                // Calculate monthly price for yearly plans
-                $monthly_price = $is_yearly ? round($plan->price / 12, 2) : $plan->price;
-            ?>
-            <div class="pro-pricing-card <?php echo $is_popular ? 'pro-featured' : ''; ?> <?php echo $is_current ? 'pro-current' : ''; ?>" 
-                data-interval="<?php echo esc_attr($plan->interval); ?>"
-                <?php if ($has_monthly && $has_yearly): ?>
-                    style="<?php echo ($is_yearly) ? '' : 'display: none;'; ?>"
-                <?php endif; ?>>
-                
-                <?php if ($is_popular): ?>
-                    <div class="pro-popular-badge">Most popular</div>
-                <?php endif; ?>
-                
-                <div class="pro-card-content <?php echo $is_popular ? 'has-badge' : ''; ?>">
-                    <div class="pro-plan-name"><?php echo esc_html($plan->name); ?></div>
-                    <div class="pro-plan-description"><?php echo esc_html($plan->description); ?></div>
+                foreach ($plans_by_interval[$interval] as $plan):
+                    $features = json_decode($plan->features, true);
+                    if (!is_array($features)) $features = [];
                     
-                    <div class="pro-price-container">
-                        <?php if ($is_free): ?>
-                            <div class="pro-price">
-                                <span class="pro-price-amount">Free</span>
-                            </div>
-                        <?php else: ?>
-                            <div class="pro-price">
-                                <span class="pro-price-currency">$</span>
-                                <span class="pro-price-amount"><?php echo number_format($plan->price, 0); ?></span>
-                            </div>
-                            <div class="pro-price-period">per seat/<?php echo esc_html($plan->interval === 'lifetime' ? 'lifetime' : $plan->interval); ?></div>
-                            <?php if ($is_yearly): ?>
-                                <div class="pro-price-billing-note">$<?php echo number_format($monthly_price, 0); ?> billed monthly</div>
-                            <?php elseif ($is_monthly): ?>
-                                <div class="pro-price-billing-note">billed monthly</div>
-                            <?php else: ?>
-                                <div class="pro-price-billing-note">one-time payment</div>
-                            <?php endif; ?>
+                    $is_current = $has_subscription && $current_subscription && $current_subscription->plan_id == $plan->id;
+                    $is_popular = ($plan_index === 1 && count($plans) >= 3); // Middle plan
+                    
+                    // Calculate monthly equivalent for yearly plans
+                    $display_price = $plan->price;
+                    $price_period = ucfirst($plan->interval);
+                    $price_note = '';
+                    
+                    if ($plan->interval === 'yearly') {
+                        $monthly_equiv = round($plan->price / 12, 2);
+                        $price_note = sprintf('$%s billed monthly', number_format($monthly_equiv, 2));
+                    } elseif ($plan->interval === 'monthly') {
+                        $price_note = 'Billed monthly';
+                    } elseif ($plan->interval === 'lifetime') {
+                        $price_note = 'One-time payment';
+                    }
+                    
+                    $card_classes = ['pcp-card'];
+                    if ($is_popular) $card_classes[] = 'popular';
+                    if ($is_current) $card_classes[] = 'current';
+                    
+                    // Add interval class for toggle
+                    $card_classes[] = 'interval-' . $plan->interval;
+                    
+                    // Initially hide monthly plans if toggle exists
+                    $initial_display = '';
+                    if ($show_toggle && $plan->interval === 'monthly') {
+                        $initial_display = ' style="display: none;"';
+                    }
+                    
+                    $plan_index++;
+            ?>
+                <div class="<?php echo esc_attr(implode(' ', $card_classes)); ?>"<?php echo $initial_display; ?>>
+                    <?php if ($is_popular): ?>
+                        <div class="popular-badge">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                            </svg>
+                            Most Popular
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($is_current): ?>
+                        <div class="current-badge">Current Plan</div>
+                    <?php endif; ?>
+
+                    <div class="pcp-card-header">
+                        <h3 class="plan-name"><?php echo esc_html($plan->name); ?></h3>
+                        <?php if ($plan->description): ?>
+                            <p class="plan-description"><?php echo esc_html($plan->description); ?></p>
                         <?php endif; ?>
                     </div>
 
-                    <?php if ($is_current): ?>
-                        <button class="pro-cta-button pro-current-btn" disabled>Current Plan</button>
-                    <?php elseif ($user_id): ?>
-                        <?php if ($is_free): ?>
-                            <a href="<?php echo esc_url(home_url()); ?>" class="pro-cta-button">
-                                Continue with Free
+                    <div class="pcp-card-pricing">
+                        <div class="price-display">
+                            <span class="currency">$</span>
+                            <span class="amount"><?php echo number_format($display_price, 0); ?></span>
+                        </div>
+                        <div class="price-period"><?php echo esc_html($price_period); ?></div>
+                        <?php if ($price_note): ?>
+                            <div class="price-note"><?php echo esc_html($price_note); ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="pcp-card-cta">
+                        <?php if ($is_current): ?>
+                            <button class="pcp-btn disabled" disabled>Current Plan</button>
+                        <?php elseif ($user_id): ?>
+                            <a href="<?php echo esc_url(add_query_arg('plan', $plan->id, get_permalink(get_option('premium_content_page_checkout')))); ?>" 
+                               class="pcp-btn <?php echo $is_popular ? 'primary' : 'secondary'; ?>">
+                                <?php echo $has_subscription ? 'Switch Plan' : 'Get Started'; ?>
                             </a>
                         <?php else: ?>
-                            <a href="<?php echo esc_url(add_query_arg('plan', $plan->id, get_permalink(get_option('premium_content_page_checkout')))); ?>" 
-                               class="pro-cta-button <?php echo $is_popular ? 'pro-primary' : ''; ?>">
-                                <?php echo $has_subscription ? 'Switch Plan' : 'Try for free'; ?>
+                            <a href="<?php echo esc_url(wp_login_url(add_query_arg('plan', $plan->id, get_permalink(get_option('premium_content_page_checkout'))))); ?>" 
+                               class="pcp-btn <?php echo $is_popular ? 'primary' : 'secondary'; ?>">
+                                Get Started
                             </a>
                         <?php endif; ?>
-                    <?php else: ?>
-                        <a href="<?php echo esc_url(wp_login_url(add_query_arg('plan', $plan->id, get_permalink(get_option('premium_content_page_checkout'))))); ?>" 
-                           class="pro-cta-button <?php echo $is_popular ? 'pro-primary' : ''; ?>">
-                            <?php echo $is_free ? 'Sign up' : 'Try for free'; ?>
-                        </a>
-                    <?php endif; ?>
+                    </div>
 
-                    <?php if (!$is_current && !$is_free): ?>
-                        <div class="pro-signup-link">
-                            or <a href="<?php echo esc_url(wp_registration_url()); ?>">sign up now</a>
+                    <?php if (!empty($features)): ?>
+                        <div class="pcp-card-features">
+                            <div class="features-header">What's included:</div>
+                            <ul class="features-list">
+                                <?php foreach ($features as $feature): ?>
+                                    <li>
+                                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span><?php echo esc_html($feature); ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
                         </div>
-                    <?php endif; ?>
-
-                    <?php if ($features && is_array($features)): ?>
-                        <div class="pro-features-header">
-                            <?php echo $is_free ? 'Free includes:' : 'Includes:'; ?>
-                        </div>
-                        <ul class="pro-features-list">
-                            <?php foreach ($features as $feature): ?>
-                                <li class="pro-feature-item"><?php echo esc_html($feature); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
                     <?php endif; ?>
                 </div>
-            </div>
-            <?php endforeach; ?>
+            <?php 
+                endforeach;
+            endforeach; 
+            ?>
         </div>
 
         <!-- FAQ Section -->
-        <div class="pro-faq-section">
+        <div class="pcp-faq">
             <h2>Frequently Asked Questions</h2>
-            
-            <div class="pro-faq-item">
-                <button class="pro-faq-question">
-                    Can I change my plan later?
-                </button>
-                <div class="pro-faq-answer">
-                    Yes! You can upgrade or downgrade your plan at any time from your account settings. When you upgrade, you'll be charged the prorated difference. When you downgrade, the change will take effect at the end of your current billing period.
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Can I change my plan later?</h4>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! You can upgrade or downgrade your plan at any time from your account dashboard. Changes take effect immediately with prorated billing adjustments.</p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="pro-faq-item">
-                <button class="pro-faq-question">
-                    What payment methods do you accept?
-                </button>
-                <div class="pro-faq-answer">
-                    We accept all major credit cards through Stripe and PayPal payments. All transactions are secure and encrypted with industry-standard SSL technology.
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>What payment methods do you accept?</h4>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We accept all major credit cards (Visa, MasterCard, American Express) via Stripe, and PayPal. All transactions are secured with 256-bit SSL encryption.</p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="pro-faq-item">
-                <button class="pro-faq-question">
-                    Is there a free trial available?
-                </button>
-                <div class="pro-faq-answer">
-                    Yes! All paid plans come with instant access. You can explore all the features and cancel anytime. No hidden fees or long-term commitments required.
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Is there a free trial?</h4>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <p>All plans come with instant access. You can cancel anytime within the first 30 days for a full refund, no questions asked.</p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="pro-faq-item">
-                <button class="pro-faq-question">
-                    What happens if I cancel?
-                </button>
-                <div class="pro-faq-answer">
-                    You can cancel anytime from your account settings. You'll continue to have access to premium content until the end of your current billing period. No cancellation fees.
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Can I cancel anytime?</h4>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Absolutely! You can cancel your subscription at any time from your account dashboard. You'll continue to have access until the end of your current billing period.</p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="pro-faq-item">
-                <button class="pro-faq-question">
-                    Do you offer refunds?
-                </button>
-                <div class="pro-faq-answer">
-                    Yes, we offer a 30-day money-back guarantee for all paid plans. If you're not satisfied within the first 30 days, contact our support team for a full refund.
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Do you offer refunds?</h4>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes, we offer a 30-day money-back guarantee on all plans. If you're not completely satisfied, contact support for a full refund within 30 days of purchase.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How secure is my payment?</h4>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Your payment information is protected with enterprise-grade security. We never store your card details on our servers - all payments are processed securely through Stripe and PayPal.</p>
+                    </div>
                 </div>
             </div>
         </div>
+
     <?php endif; ?>
 </div>
 
+<style>
+/* Modern Pricing Page Styles */
+.pcp-pricing-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 60px 20px 100px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Hero Section */
+.pcp-hero {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.pcp-hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.02em;
+}
+
+.pcp-hero p {
+    font-size: clamp(1.125rem, 2vw, 1.375rem);
+    color: #6b7280;
+    margin: 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Trust Badges */
+.pcp-trust-badges {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 32px;
+    margin-bottom: 60px;
+    padding: 24px;
+}
+
+.trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #4b5563;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.trust-badge svg {
+    color: #10b981;
+}
+
+/* Current Subscription */
+.pcp-current-subscription {
+    max-width: 800px;
+    margin: 0 auto 40px;
+    padding: 16px 24px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pcp-current-subscription svg {
+    color: #16a34a;
+    flex-shrink: 0;
+}
+
+.pcp-current-subscription strong {
+    display: block;
+    color: #166534;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.pcp-current-subscription a {
+    color: #16a34a;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.pcp-current-subscription a:hover {
+    text-decoration: underline;
+}
+
+/* No Plans Message */
+.pcp-no-plans {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.pcp-no-plans svg {
+    color: #9ca3af;
+    margin-bottom: 16px;
+}
+
+.pcp-no-plans p {
+    color: #6b7280;
+    font-size: 1.125rem;
+}
+
+/* Billing Toggle */
+.pcp-billing-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 50px;
+    background: #f3f4f6;
+    padding: 4px;
+    border-radius: 12px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.toggle-option {
+    padding: 12px 32px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toggle-option:hover {
+    color: #111827;
+}
+
+.toggle-option.active {
+    background: white;
+    color: #2563eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.savings-badge {
+    background: #dcfce7;
+    color: #166534;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* Pricing Grid */
+.pcp-pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+    margin-bottom: 80px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pcp-pricing-grid.two-col {
+    max-width: 800px;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* Pricing Cards */
+.pcp-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 36px 32px;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.pcp-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.pcp-card.popular {
+    border-color: #2563eb;
+    border-width: 2px;
+    box-shadow: 0 12px 32px rgba(37, 99, 235, 0.15);
+}
+
+.pcp-card.popular:hover {
+    border-color: #1d4ed8;
+    box-shadow: 0 24px 48px rgba(37, 99, 235, 0.2);
+}
+
+.pcp-card.current {
+    border-color: #10b981;
+    opacity: 0.9;
+}
+
+/* Badges */
+.popular-badge,
+.current-badge {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: 0;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 0.813rem;
+    font-weight: 700;
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.popular-badge {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+}
+
+.current-badge {
+    background: #10b981;
+    color: white;
+}
+
+.pcp-card.popular .pcp-card-header,
+.pcp-card.current .pcp-card-header {
+    margin-top: 20px;
+}
+
+/* Card Header */
+.pcp-card-header {
+    margin-bottom: 24px;
+}
+
+.plan-name {
+    font-size: 1.625rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+}
+
+.plan-description {
+    color: #6b7280;
+    font-size: 0.938rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Card Pricing */
+.pcp-card-pricing {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.price-display {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.currency {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.amount {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.02em;
+}
+
+.price-period {
+    color: #6b7280;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.price-note {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+/* Card CTA */
+.pcp-card-cta {
+    margin-bottom: 28px;
+}
+
+.pcp-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.pcp-btn.primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+}
+
+.pcp-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+}
+
+.pcp-btn.secondary {
+    background: white;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.pcp-btn.secondary:hover {
+    background: #eff6ff;
+}
+
+.pcp-btn.disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Card Features */
+.pcp-card-features {
+    flex-grow: 1;
+}
+
+.features-header {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.features-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    color: #374151;
+    font-size: 0.938rem;
+    line-height: 1.5;
+}
+
+.features-list li svg {
+    color: #10b981;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* FAQ Section */
+.pcp-faq {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-top: 40px;
+}
+
+.pcp-faq h2 {
+    text-align: center;
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 48px;
+}
+
+.faq-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.faq-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.faq-item:hover {
+    border-color: #cbd5e1;
+}
+
+.faq-question {
+    width: 100%;
+    padding: 20px 24px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.faq-question h4 {
+    margin: 0;
+    font-size: 1.063rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.faq-question svg {
+    color: #6b7280;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.faq-item.active .faq-question svg {
+    transform: rotate(180deg);
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.faq-item.active .faq-answer {
+    max-height: 300px;
+    padding: 0 24px 20px 24px;
+}
+
+.faq-answer p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.938rem;
+    line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .pcp-pricing-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    
+    .pcp-pricing-grid.two-col {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .pcp-pricing-wrapper {
+        padding: 40px 16px 60px;
+    }
+    
+    .pcp-hero h1 {
+        font-size: 2rem;
+    }
+    
+    .pcp-trust-badges {
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+    }
+    
+    .pcp-pricing-grid,
+    .pcp-pricing-grid.two-col {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .pcp-card {
+        padding: 28px 24px;
+    }
+    
+    .amount {
+        font-size: 3rem;
+    }
+    
+    .toggle-option {
+        padding: 10px 20px;
+        font-size: 0.938rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pcp-current-subscription {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .faq-question {
+        padding: 16px 20px;
+    }
+    
+    .faq-question h4 {
+        font-size: 0.938rem;
+    }
+}
+</style>
+
 <script>
 jQuery(document).ready(function($) {
-    // Billing toggle functionality
-    var toggle = $('#pro-billing-toggle');
-    var monthlyLabel = $('#pro-monthly-label');
-    var yearlyLabel = $('#pro-yearly-label');
-    var isYearly = true;
-
-    // Start with yearly selected
-    toggle.addClass('pro-active');
-    $('.pro-pricing-card[data-interval="yearly"]').show();
-    $('.pro-pricing-card[data-interval="monthly"]').hide();
-    $('.pro-pricing-card[data-interval="lifetime"]').show(); // Always show lifetime
-
-    toggle.on('click', function() {
-        isYearly = !isYearly;
-        toggle.toggleClass('pro-active');
+    'use strict';
+    
+    // Billing Toggle Logic
+    const $monthlyToggle = $('#monthly-toggle');
+    const $yearlyToggle = $('#yearly-toggle');
+    const $monthlyCards = $('.interval-monthly');
+    const $yearlyCards = $('.interval-yearly');
+    const $lifetimeCards = $('.interval-lifetime');
+    
+    // Only set up toggle if both monthly and yearly plans exist
+    if ($monthlyToggle.length && $yearlyToggle.length) {
         
-        if (isYearly) {
-            monthlyLabel.removeClass('pro-active');
-            yearlyLabel.addClass('pro-active');
-            $('.pro-pricing-card[data-interval="monthly"]').fadeOut(200, function() {
-                $('.pro-pricing-card[data-interval="yearly"]').fadeIn(200);
-            });
-        } else {
-            yearlyLabel.removeClass('pro-active');
-            monthlyLabel.addClass('pro-active');
-            $('.pro-pricing-card[data-interval="yearly"]').fadeOut(200, function() {
-                $('.pro-pricing-card[data-interval="monthly"]').fadeIn(200);
-            });
-        }
+        $monthlyToggle.on('click', function() {
+            if ($(this).hasClass('active')) return;
+            
+            // Update toggle state
+            $monthlyToggle.addClass('active');
+            $yearlyToggle.removeClass('active');
+            
+            // Show monthly, hide yearly, always show lifetime
+            $monthlyCards.fadeIn(300);
+            $yearlyCards.fadeOut(300);
+            $lifetimeCards.fadeIn(300);
+        });
         
-        // Always show lifetime
-        $('.pro-pricing-card[data-interval="lifetime"]').show();
-    });
-
-    // FAQ accordion functionality
-    $('.pro-faq-question').on('click', function() {
-        var answer = $(this).next('.pro-faq-answer');
-        var isActive = $(this).hasClass('pro-active');
-
-        // Close all other FAQs
-        $('.pro-faq-question').removeClass('pro-active');
-        $('.pro-faq-answer').removeClass('pro-active');
-
-        // Toggle current FAQ
+        $yearlyToggle.on('click', function() {
+            if ($(this).hasClass('active')) return;
+            
+            // Update toggle state
+            $yearlyToggle.addClass('active');
+            $monthlyToggle.removeClass('active');
+            
+            // Show yearly, hide monthly, always show lifetime
+            $yearlyCards.fadeIn(300);
+            $monthlyCards.fadeOut(300);
+            $lifetimeCards.fadeIn(300);
+        });
+    }
+    
+    // FAQ Accordion
+    $('.faq-question').on('click', function() {
+        const $item = $(this).closest('.faq-item');
+        const isActive = $item.hasClass('active');
+        
+        // Close all FAQs
+        $('.faq-item').removeClass('active');
+        
+        // Open clicked FAQ if it wasn't active
         if (!isActive) {
-            $(this).addClass('pro-active');
-            answer.addClass('pro-active');
+            $item.addClass('active');
+        }
+    });
+    
+    // Smooth scroll for anchor links
+    $('a[href^="#"]').on('click', function(e) {
+        const target = $(this.getAttribute('href'));
+        if (target.length) {
+            e.preventDefault();
+            $('html, body').stop().animate({
+                scrollTop: target.offset().top - 100
+            }, 600);
         }
     });
 });
 </script>
+
+<?php
