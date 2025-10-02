@@ -37,7 +37,7 @@ class Premium_Content_Installer {
             name varchar(255) NOT NULL,
             description text,
             price decimal(10,2) NOT NULL DEFAULT '0.00',
-            interval varchar(20) NOT NULL DEFAULT 'monthly',
+            `interval` varchar(20) NOT NULL DEFAULT 'monthly',
             features longtext,
             stripe_price_id varchar(255),
             paypal_plan_id varchar(255),
