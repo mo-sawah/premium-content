@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content Pro
  * Description: Advanced content monetization with metered paywall, subscriptions, and payment processing.
- * Version: 2.0.10
+ * Version: 2.0.11
  * Author: Mohamed Sawah
  * Requires PHP: 7.4
  */
@@ -12,8 +12,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Check if tables exist and create them if needed
+add_action('plugins_loaded', 'premium_content_check_tables', 1);
+function premium_content_check_tables() {
+    global $wpdb;
+    
+    $table_plans = $wpdb->prefix . 'premium_plans';
+    
+    // Check if main table exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_plans'") != $table_plans) {
+        // Tables don't exist, run installer
+        require_once plugin_dir_path(__FILE__) . 'includes/class-installer.php';
+        Premium_Content_Installer::activate();
+    }
+}
+
 // Define plugin constants
-define('PREMIUM_CONTENT_VERSION', '2.0.10');
+define('PREMIUM_CONTENT_VERSION', '2.0.11');
 define('PREMIUM_CONTENT_PATH', plugin_dir_path(__FILE__));
 define('PREMIUM_CONTENT_URL', plugin_dir_url(__FILE__));
 
