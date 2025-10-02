@@ -1,6 +1,6 @@
 <?php
 /**
- * Template: Pricing Page - 4 Column Layout
+ * Template: Pricing Page - Fixed Division by Zero Error
  */
 
 if (!defined('ABSPATH')) {
@@ -30,13 +30,17 @@ $has_monthly = !empty($plans_by_interval['monthly']);
 $has_yearly = !empty($plans_by_interval['yearly']);
 $show_toggle = $has_monthly && $has_yearly;
 
-// Calculate savings
+// Calculate savings - FIX DIVISION BY ZERO
 $yearly_savings = 0;
 if ($has_monthly && $has_yearly) {
     $monthly_plan = $plans_by_interval['monthly'][0];
     $yearly_plan = $plans_by_interval['yearly'][0];
     $monthly_annual = $monthly_plan->price * 12;
-    $yearly_savings = round((($monthly_annual - $yearly_plan->price) / $monthly_annual) * 100);
+    
+    // Only calculate if monthly_annual is greater than 0
+    if ($monthly_annual > 0 && $yearly_plan->price < $monthly_annual) {
+        $yearly_savings = round((($monthly_annual - $yearly_plan->price) / $monthly_annual) * 100);
+    }
 }
 ?>
 
@@ -107,7 +111,7 @@ if ($has_monthly && $has_yearly) {
         </div>
         <?php endif; ?>
 
-        <!-- Pricing Cards - 4 Column Grid -->
+        <!-- Pricing Cards -->
         <div class="pcp-pricing-grid">
             <?php 
             $all_intervals = ['monthly', 'yearly', 'lifetime'];
@@ -124,17 +128,18 @@ if ($has_monthly && $has_yearly) {
                     $is_current = $has_subscription && $current_subscription && $current_subscription->plan_id == $plan->id;
                     $is_popular = ($plan_index === 1 && $total_plans >= 3);
                     
-                    $display_price = $plan->price;
+                    // Format price with decimals
+                    $display_price = number_format($plan->price, 2);
                     $price_period = ucfirst($plan->interval);
                     $price_note = '';
                     
                     if ($plan->interval === 'yearly') {
-                        $monthly_equiv = round($plan->price / 12, 2);
-                        $price_note = sprintf('$%s/mo', number_format($monthly_equiv, 0));
+                        $monthly_equiv = $plan->price / 12;
+                        $price_note = sprintf('$%s/mo', number_format($monthly_equiv, 2));
                     } elseif ($plan->interval === 'monthly') {
                         $price_note = 'Billed monthly';
                     } elseif ($plan->interval === 'lifetime') {
-                        $price_note = 'One-time';
+                        $price_note = 'One-time payment';
                     }
                     
                     $card_classes = ['pcp-card'];
@@ -173,7 +178,7 @@ if ($has_monthly && $has_yearly) {
                     <div class="pcp-card-pricing">
                         <div class="price-display">
                             <span class="currency">$</span>
-                            <span class="amount"><?php echo number_format($display_price, 0); ?></span>
+                            <span class="amount"><?php echo $display_price; ?></span>
                         </div>
                         <div class="price-period"><?php echo esc_html($price_period); ?></div>
                         <?php if ($price_note): ?>
@@ -277,7 +282,7 @@ if ($has_monthly && $has_yearly) {
 </div>
 
 <style>
-/* Pricing Page Styles - 4 Column Compact Layout */
+/* Pricing Page Styles */
 .pcp-pricing-wrapper {
     max-width: 1400px;
     margin: 0 auto;
@@ -285,7 +290,6 @@ if ($has_monthly && $has_yearly) {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Hero */
 .pcp-hero {
     text-align: center;
     margin-bottom: 32px;
@@ -305,7 +309,6 @@ if ($has_monthly && $has_yearly) {
     margin: 0;
 }
 
-/* Trust Badges */
 .pcp-trust-badges {
     display: flex;
     justify-content: center;
@@ -328,7 +331,6 @@ if ($has_monthly && $has_yearly) {
     color: #10b981;
 }
 
-/* Current Subscription Banner */
 .pcp-current-subscription {
     max-width: 800px;
     margin: 0 auto 32px;
@@ -360,7 +362,6 @@ if ($has_monthly && $has_yearly) {
     font-size: 13px;
 }
 
-/* No Plans */
 .pcp-no-plans {
     text-align: center;
     padding: 50px 20px;
@@ -376,7 +377,6 @@ if ($has_monthly && $has_yearly) {
     font-size: 1.063rem;
 }
 
-/* Billing Toggle - MORE PROMINENT */
 .pcp-billing-toggle {
     display: inline-flex;
     gap: 0;
@@ -425,7 +425,6 @@ if ($has_monthly && $has_yearly) {
     font-weight: 700;
 }
 
-/* Pricing Grid - 4 COLUMNS */
 .pcp-pricing-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -433,7 +432,6 @@ if ($has_monthly && $has_yearly) {
     margin-bottom: 60px;
 }
 
-/* Pricing Cards - COMPACT */
 .pcp-card {
     background: white;
     border: 2px solid #e5e7eb;
@@ -465,7 +463,6 @@ if ($has_monthly && $has_yearly) {
     opacity: 0.9;
 }
 
-/* Badges - COMPACT */
 .popular-badge,
 .current-badge {
     position: absolute;
@@ -498,7 +495,6 @@ if ($has_monthly && $has_yearly) {
     margin-top: 16px;
 }
 
-/* Card Header - REDUCED SPACING */
 .pcp-card-header {
     margin-bottom: 16px;
 }
@@ -517,7 +513,6 @@ if ($has_monthly && $has_yearly) {
     margin: 0;
 }
 
-/* Card Pricing - COMPACT */
 .pcp-card-pricing {
     margin-bottom: 16px;
     padding-bottom: 16px;
@@ -557,7 +552,6 @@ if ($has_monthly && $has_yearly) {
     font-size: 0.813rem;
 }
 
-/* Card CTA - COMPACT */
 .pcp-card-cta {
     margin-bottom: 16px;
 }
@@ -601,7 +595,6 @@ if ($has_monthly && $has_yearly) {
     cursor: not-allowed;
 }
 
-/* Card Features - MINIMAL SPACING */
 .pcp-card-features {
     flex-grow: 1;
 }
@@ -637,7 +630,6 @@ if ($has_monthly && $has_yearly) {
     margin-top: 2px;
 }
 
-/* FAQ */
 .pcp-faq {
     max-width: 900px;
     margin: 0 auto;
@@ -717,7 +709,6 @@ if ($has_monthly && $has_yearly) {
     line-height: 1.5;
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
     .pcp-pricing-grid {
         grid-template-columns: repeat(2, 1fr);
