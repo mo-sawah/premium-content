@@ -1,23 +1,23 @@
 <?php
 /**
- * Template: User Dashboard/Account Page
- * Displays user subscription info and account management
+ * Template: User Dashboard - Modern Design
  */
 
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Check if user is logged in
 if (!is_user_logged_in()) {
     ?>
-    <div class="premium-dashboard-wrapper">
-        <div class="premium-alert premium-alert-warning">
-            <strong>Please Log In</strong>
-            <p>You need to be logged in to view your account.</p>
-            <a href="<?php echo esc_url(wp_login_url(get_permalink())); ?>" class="premium-button premium-button-primary">
-                Log In
+    <div class="pcp-dashboard-wrapper">
+        <div class="pcp-auth-required">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            </svg>
+            <h2>Please Log In</h2>
+            <p>You need to be logged in to view your account dashboard</p>
+            <a href="<?php echo esc_url(wp_login_url(get_permalink())); ?>" class="pcp-btn primary">
+                Sign In
             </a>
         </div>
     </div>
@@ -30,7 +30,6 @@ $current_user = wp_get_current_user();
 $subscription = Premium_Content_Subscription_Manager::get_user_subscription($user_id);
 $access_mode = premium_content_get_option('access_mode', 'free');
 
-// Get view count if metered mode
 $view_count = 0;
 $view_limit = 0;
 $remaining_views = 0;
@@ -41,15 +40,18 @@ if ($access_mode === 'metered') {
 }
 ?>
 
-<div class="premium-dashboard-wrapper">
+<div class="pcp-dashboard-wrapper">
+    <!-- Header -->
     <div class="dashboard-header">
         <div class="header-content">
-            <h1>My Account</h1>
-            <p>Welcome back, <?php echo esc_html($current_user->display_name); ?>!</p>
+            <div class="header-greeting">
+                <h1>Welcome back, <?php echo esc_html($current_user->display_name); ?></h1>
+                <p>Manage your subscription and account settings</p>
+            </div>
         </div>
         <div class="header-actions">
-            <a href="<?php echo esc_url(wp_logout_url(home_url())); ?>" class="logout-link">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <a href="<?php echo esc_url(wp_logout_url(home_url())); ?>" class="logout-btn">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                     <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.11 0-2 .89-2 2v14c0 1.1.89 2 2 2h8v-2H4V5z"/>
                 </svg>
                 Log Out
@@ -60,73 +62,64 @@ if ($access_mode === 'metered') {
     <div class="dashboard-grid">
         <!-- Subscription Card -->
         <div class="dashboard-card subscription-card">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                </svg>
+            </div>
             <div class="card-header">
-                <h2>
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                    </svg>
-                    Subscription Status
-                </h2>
+                <h3>Subscription</h3>
             </div>
             <div class="card-body">
                 <?php if ($subscription): 
                     $plan = Premium_Content_Subscription_Manager::get_plan($subscription->plan_id);
-                    $status_class = $subscription->status === 'active' ? 'status-active' : 'status-inactive';
+                    $status_class = $subscription->status === 'active' ? 'success' : 'warning';
                 ?>
-                    <div class="subscription-info">
-                        <div class="subscription-plan">
-                            <div class="plan-name-display"><?php echo esc_html($plan->name); ?></div>
-                            <span class="subscription-status <?php echo esc_attr($status_class); ?>">
+                    <div class="subscription-status">
+                        <div class="plan-info">
+                            <div class="plan-name"><?php echo esc_html($plan->name); ?></div>
+                            <span class="status-badge <?php echo $status_class; ?>">
                                 <?php echo ucfirst($subscription->status); ?>
                             </span>
                         </div>
-                        
-                        <div class="subscription-details">
-                            <div class="detail-row">
-                                <span class="detail-label">Plan:</span>
-                                <span class="detail-value"><?php echo esc_html($plan->name); ?></span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Price:</span>
-                                <span class="detail-value">$<?php echo number_format($plan->price, 2); ?>/<?php echo esc_html($plan->interval); ?></span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Started:</span>
-                                <span class="detail-value"><?php echo date('M j, Y', strtotime($subscription->started_at)); ?></span>
-                            </div>
-                            <?php if ($subscription->expires_at): ?>
-                            <div class="detail-row">
-                                <span class="detail-label">
-                                    <?php echo $subscription->status === 'cancelled' ? 'Access until:' : 'Renews:'; ?>
-                                </span>
-                                <span class="detail-value"><?php echo date('M j, Y', strtotime($subscription->expires_at)); ?></span>
-                            </div>
-                            <?php endif; ?>
-                            <div class="detail-row">
-                                <span class="detail-label">Payment Method:</span>
-                                <span class="detail-value"><?php echo ucfirst($subscription->payment_method); ?></span>
-                            </div>
+                        <div class="plan-price">$<?php echo number_format($plan->price, 2); ?>/<?php echo $plan->interval; ?></div>
+                    </div>
+                    
+                    <div class="subscription-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Started</div>
+                            <div class="detail-value"><?php echo date('M j, Y', strtotime($subscription->started_at)); ?></div>
                         </div>
-
-                        <?php if ($subscription->status === 'active' && $subscription->status !== 'cancelled'): ?>
-                        <div class="subscription-actions">
-                            <button id="cancel-subscription-btn" class="btn btn-secondary" data-subscription="<?php echo esc_attr($subscription->id); ?>">
-                                Cancel Subscription
-                            </button>
-                            <a href="<?php echo esc_url(get_permalink(get_option('premium_content_page_pricing'))); ?>" class="btn btn-outline">
-                                Change Plan
-                            </a>
+                        <?php if ($subscription->expires_at): ?>
+                        <div class="detail-item">
+                            <div class="detail-label"><?php echo $subscription->status === 'cancelled' ? 'Expires' : 'Renews'; ?></div>
+                            <div class="detail-value"><?php echo date('M j, Y', strtotime($subscription->expires_at)); ?></div>
                         </div>
                         <?php endif; ?>
+                        <div class="detail-item">
+                            <div class="detail-label">Payment</div>
+                            <div class="detail-value"><?php echo ucfirst($subscription->payment_method); ?></div>
+                        </div>
                     </div>
+
+                    <?php if ($subscription->status === 'active' && $subscription->status !== 'cancelled'): ?>
+                    <div class="card-actions">
+                        <button id="cancel-subscription-btn" class="pcp-btn secondary small" data-subscription="<?php echo esc_attr($subscription->id); ?>">
+                            Cancel Subscription
+                        </button>
+                        <a href="<?php echo esc_url(get_permalink(get_option('premium_content_page_pricing'))); ?>" class="pcp-btn outline small">
+                            Change Plan
+                        </a>
+                    </div>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="no-subscription">
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                         </svg>
-                        <h3>No Active Subscription</h3>
-                        <p>Subscribe to get unlimited access to all premium content.</p>
-                        <a href="<?php echo esc_url(get_permalink(get_option('premium_content_page_pricing'))); ?>" class="btn btn-primary">
+                        <h4>No Active Subscription</h4>
+                        <p>Subscribe to unlock unlimited access to all premium content</p>
+                        <a href="<?php echo esc_url(get_permalink(get_option('premium_content_page_pricing'))); ?>" class="pcp-btn primary small">
                             View Plans
                         </a>
                     </div>
@@ -136,35 +129,35 @@ if ($access_mode === 'metered') {
 
         <!-- Account Info Card -->
         <div class="dashboard-card account-card">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+            </div>
             <div class="card-header">
-                <h2>
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
-                    Account Information
-                </h2>
+                <h3>Account Information</h3>
             </div>
             <div class="card-body">
                 <div class="account-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Name:</span>
-                        <span class="detail-value"><?php echo esc_html($current_user->display_name); ?></span>
+                    <div class="detail-item">
+                        <div class="detail-label">Name</div>
+                        <div class="detail-value"><?php echo esc_html($current_user->display_name); ?></div>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Email:</span>
-                        <span class="detail-value"><?php echo esc_html($current_user->user_email); ?></span>
+                    <div class="detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value"><?php echo esc_html($current_user->user_email); ?></div>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Username:</span>
-                        <span class="detail-value"><?php echo esc_html($current_user->user_login); ?></span>
+                    <div class="detail-item">
+                        <div class="detail-label">Username</div>
+                        <div class="detail-value"><?php echo esc_html($current_user->user_login); ?></div>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Member Since:</span>
-                        <span class="detail-value"><?php echo date('M j, Y', strtotime($current_user->user_registered)); ?></span>
+                    <div class="detail-item">
+                        <div class="detail-label">Member Since</div>
+                        <div class="detail-value"><?php echo date('M j, Y', strtotime($current_user->user_registered)); ?></div>
                     </div>
                 </div>
-                <div class="account-actions">
-                    <a href="<?php echo esc_url(admin_url('profile.php')); ?>" class="btn btn-outline">
+                <div class="card-actions">
+                    <a href="<?php echo esc_url(admin_url('profile.php')); ?>" class="pcp-btn outline small">
                         Edit Profile
                     </a>
                 </div>
@@ -172,40 +165,35 @@ if ($access_mode === 'metered') {
         </div>
 
         <?php if ($access_mode === 'metered' && !$subscription): ?>
-        <!-- Usage Stats Card (Metered Mode Only) -->
+        <!-- Usage Card -->
         <div class="dashboard-card usage-card">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                </svg>
+            </div>
             <div class="card-header">
-                <h2>
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-                    </svg>
-                    Article Usage
-                </h2>
+                <h3>Article Usage</h3>
             </div>
             <div class="card-body">
-                <div class="usage-progress">
-                    <div class="usage-stats">
-                        <span class="usage-count"><?php echo $view_count; ?> of <?php echo $view_limit; ?></span>
-                        <span class="usage-label">articles read this month</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: <?php echo ($view_limit > 0) ? min(100, ($view_count / $view_limit) * 100) : 0; ?>%"></div>
-                    </div>
-                    <p class="usage-remaining">
-                        <?php if ($remaining_views > 0): ?>
-                            You have <strong><?php echo $remaining_views; ?> free article<?php echo $remaining_views !== 1 ? 's' : ''; ?></strong> remaining.
-                        <?php else: ?>
-                            <span style="color: #d63638;">You've reached your free article limit.</span>
-                        <?php endif; ?>
+                <div class="usage-stats">
+                    <div class="usage-number"><?php echo $view_count; ?> <span>/ <?php echo $view_limit; ?></span></div>
+                    <div class="usage-label">Articles read this month</div>
+                </div>
+                <div class="usage-bar">
+                    <div class="usage-fill" style="width: <?php echo min(100, ($view_limit > 0) ? ($view_count / $view_limit) * 100 : 0); ?>%"></div>
+                </div>
+                <?php if ($remaining_views > 0): ?>
+                    <p class="usage-message">
+                        You have <strong><?php echo $remaining_views; ?> free article<?php echo $remaining_views !== 1 ? 's' : ''; ?></strong> remaining
                     </p>
-                </div>
-                <?php if ($remaining_views === 0): ?>
-                <div class="upgrade-prompt">
-                    <p>Subscribe for unlimited access to all content!</p>
-                    <a href="<?php echo esc_url(get_permalink(get_option('premium_content_page_pricing'))); ?>" class="btn btn-primary">
-                        View Plans
+                <?php else: ?>
+                    <p class="usage-message error">
+                        You've reached your free article limit
+                    </p>
+                    <a href="<?php echo esc_url(get_permalink(get_option('premium_content_page_pricing'))); ?>" class="pcp-btn primary small">
+                        Upgrade Now
                     </a>
-                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -251,12 +239,14 @@ jQuery(document).ready(function($) {
 </script>
 
 <style>
-.premium-dashboard-wrapper {
+.pcp-dashboard-wrapper {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 40px 20px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Header */
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -266,134 +256,166 @@ jQuery(document).ready(function($) {
     border-bottom: 2px solid #e5e7eb;
 }
 
-.dashboard-header h1 {
+.header-greeting h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
     margin: 0 0 8px 0;
-    font-size: 32px;
-    color: #2c3e50;
 }
 
-.dashboard-header p {
-    margin: 0;
+.header-greeting p {
     color: #6b7280;
-    font-size: 16px;
+    margin: 0;
+    font-size: 1rem;
 }
 
-.logout-link {
+.logout-btn {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 2px solid #e5e7eb;
     border-radius: 8px;
     color: #6b7280;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.2s;
 }
 
-.logout-link:hover {
-    border-color: #d63638;
-    color: #d63638;
+.logout-btn:hover {
+    border-color: #dc2626;
+    color: #dc2626;
 }
 
+/* Dashboard Grid */
 .dashboard-grid {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 24px;
 }
 
+/* Dashboard Cards */
 .dashboard-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 2px solid #e5e7eb;
     border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 28px;
+    transition: all 0.3s;
+}
+
+.dashboard-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
 .card-header {
-    padding: 20px 24px;
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 20px;
 }
 
-.card-header h2 {
+.card-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
     margin: 0;
-    font-size: 18px;
-    color: #2c3e50;
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
 .card-body {
-    padding: 24px;
+    flex: 1;
 }
 
-.subscription-plan {
+/* Subscription Card */
+.subscription-status {
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.plan-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
 }
 
-.plan-name-display {
-    font-size: 24px;
+.plan-name {
+    font-size: 1.375rem;
     font-weight: 700;
-    color: #2c3e50;
+    color: #111827;
 }
 
-.subscription-status {
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
 }
 
-.status-active {
+.status-badge.success {
     background: #dcfce7;
     color: #166534;
 }
 
-.status-inactive {
-    background: #fee2e2;
-    color: #991b1b;
+.status-badge.warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.plan-price {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2563eb;
 }
 
 .subscription-details {
-    background: #f9fafb;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 24px;
+    display: grid;
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
-.detail-row {
+.detail-item {
     display: flex;
     justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.detail-row:last-child {
-    border-bottom: none;
+    align-items: center;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 6px;
 }
 
 .detail-label {
+    font-size: 0.875rem;
     color: #6b7280;
     font-weight: 500;
 }
 
 .detail-value {
-    color: #2c3e50;
+    font-size: 0.938rem;
+    color: #111827;
     font-weight: 600;
 }
 
-.subscription-actions {
-    display: flex;
+/* Account Details */
+.account-details {
+    display: grid;
     gap: 12px;
-    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
 
+/* No Subscription */
 .no-subscription {
     text-align: center;
     padding: 40px 20px;
@@ -404,47 +426,44 @@ jQuery(document).ready(function($) {
     margin-bottom: 16px;
 }
 
-.no-subscription h3 {
-    margin: 0 0 12px 0;
-    color: #2c3e50;
+.no-subscription h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 8px 0;
 }
 
 .no-subscription p {
-    margin: 0 0 24px 0;
     color: #6b7280;
+    margin: 0 0 20px 0;
+    font-size: 0.938rem;
 }
 
-.account-details {
-    margin-bottom: 24px;
-}
-
-.account-actions {
-    display: flex;
-    gap: 12px;
-}
-
-.usage-progress {
-    text-align: center;
-}
-
+/* Usage Card */
 .usage-stats {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 16px;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-.usage-count {
-    font-size: 32px;
+.usage-number {
+    font-size: 3rem;
     font-weight: 700;
-    color: #2c3e50;
+    color: #111827;
+    line-height: 1;
+}
+
+.usage-number span {
+    font-size: 1.5rem;
+    color: #6b7280;
 }
 
 .usage-label {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: #6b7280;
+    margin-top: 8px;
 }
 
-.progress-bar {
+.usage-bar {
     height: 12px;
     background: #e5e7eb;
     border-radius: 6px;
@@ -452,89 +471,139 @@ jQuery(document).ready(function($) {
     margin-bottom: 16px;
 }
 
-.progress-fill {
+.usage-fill {
     height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     transition: width 0.3s ease;
 }
 
-.usage-remaining {
+.usage-message {
+    text-align: center;
     color: #374151;
+    font-size: 0.938rem;
+    margin: 0 0 20px 0;
+}
+
+.usage-message.error {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* Card Actions */
+.card-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Buttons */
+.pcp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.pcp-btn.small {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+}
+
+.pcp-btn.primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+}
+
+.pcp-btn.primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.pcp-btn.secondary {
+    background: white;
+    color: #dc2626;
+    border-color: #dc2626;
+}
+
+.pcp-btn.secondary:hover {
+    background: #dc2626;
+    color: white;
+}
+
+.pcp-btn.outline {
+    background: white;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.pcp-btn.outline:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.pcp-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Auth Required */
+.pcp-auth-required {
+    max-width: 500px;
+    margin: 60px auto;
+    text-align: center;
+    background: white;
+    padding: 48px 40px;
+    border-radius: 16px;
+    border: 2px solid #e5e7eb;
+}
+
+.pcp-auth-required svg {
+    color: #6b7280;
     margin-bottom: 20px;
 }
 
-.upgrade-prompt {
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 20px;
+.pcp-auth-required h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 12px 0;
 }
 
-.upgrade-prompt p {
-    margin: 0 0 16px 0;
-    color: #92400e;
-    font-weight: 600;
+.pcp-auth-required p {
+    color: #6b7280;
+    margin: 0 0 24px 0;
 }
 
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.btn-secondary {
-    background: white;
-    color: #d63638;
-    border-color: #d63638;
-}
-
-.btn-secondary:hover {
-    background: #d63638;
-    color: white;
-}
-
-.btn-outline {
-    background: white;
-    color: #667eea;
-    border-color: #667eea;
-}
-
-.btn-outline:hover {
-    background: #667eea;
-    color: white;
-}
-
+/* Responsive */
 @media (max-width: 768px) {
+    .pcp-dashboard-wrapper {
+        padding: 30px 16px 60px;
+    }
+    
     .dashboard-header {
         flex-direction: column;
-        align-items: flex-start;
         gap: 16px;
+        align-items: flex-start;
     }
-
-    .subscription-actions,
-    .account-actions {
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-actions {
         flex-direction: column;
     }
-
-    .btn {
+    
+    .pcp-btn.small {
         width: 100%;
     }
 }
