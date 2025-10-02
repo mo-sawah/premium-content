@@ -391,7 +391,7 @@ if ($has_monthly && $has_yearly) {
 }
 
 .toggle-option {
-    padding: 12px 28px;
+    padding: 5px 28px;
     background: transparent;
     border: none;
     border-radius: 8px;
@@ -406,8 +406,13 @@ if ($has_monthly && $has_yearly) {
     white-space: nowrap;
 }
 
+.pcp-billing-toggle button {
+    height: 30px !important;
+}
+
 .toggle-option:hover {
-    color: #111827;
+    color: #fff;
+    background: #2563eb;
 }
 
 .toggle-option.active {
@@ -559,7 +564,7 @@ if ($has_monthly && $has_yearly) {
 .pcp-btn {
     display: block;
     width: 100%;
-    padding: 11px 20px;
+    padding: 7px 20px;
     border-radius: 8px;
     font-size: 0.938rem;
     font-weight: 600;

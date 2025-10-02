@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content Pro
  * Description: Advanced content monetization with metered paywall, subscriptions, and payment processing.
- * Version: 2.0.20
+ * Version: 2.0.21
  * Author: Mohamed Sawah
  * Requires PHP: 7.4
  */
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 
 // Define plugin constants
-define('PREMIUM_CONTENT_VERSION', '2.0.20');
+define('PREMIUM_CONTENT_VERSION', '2.0.21');
 define('PREMIUM_CONTENT_PATH', plugin_dir_path(__FILE__));
 define('PREMIUM_CONTENT_URL', plugin_dir_url(__FILE__));
 
