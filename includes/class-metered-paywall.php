@@ -124,41 +124,47 @@ class Premium_Content_Metered_Paywall {
         
         ob_start();
         ?>
+        <style>
+        #ai-voice-player-wrapper { display: none !important; }
+        </style>
+        
         <div class="premium-content-wrapper">
             <div class="premium-truncated-content">
                 <?php echo $truncated; ?>
             </div>
             
-            <div id="premium-content-gate" class="premium-paywall-gate">
-                <div class="premium-paywall-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1m-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/>
-                    </svg>
+            <div id="premium-content-gate" class="premium-paywall-gate premium-modern-gate">
+                <div class="premium-gate-header">
+                    <div class="premium-lock-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                            <path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1m-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="premium-gate-title">
+                        <?php echo esc_html(premium_content_get_option('email_gate_title', 'Unlock This Content')); ?>
+                    </h2>
+                    
+                    <p class="premium-gate-description">
+                        <?php echo esc_html(premium_content_get_option('email_gate_description', 'Get instant access to this article and all premium content for 30 days.')); ?>
+                    </p>
                 </div>
-                
-                <h2 class="premium-paywall-title">
-                    <?php echo esc_html(premium_content_get_option('email_gate_title', 'Unlock This Content')); ?>
-                </h2>
-                
-                <p class="premium-paywall-description">
-                    <?php echo esc_html(premium_content_get_option('email_gate_description', 'Get instant access to this article and all premium content for 30 days.')); ?>
-                </p>
 
                 <?php if ($social_enabled): ?>
-                    <div class="premium-unlock-options">
-                        <p class="unlock-choice-text">Choose one option to unlock:</p>
-                        
-                        <!-- Social Media Follow Option -->
-                        <div class="premium-social-unlock">
-                            <h3 class="unlock-option-title">
+                    <p class="premium-unlock-choice">Choose one option to unlock:</p>
+                    
+                    <div class="premium-unlock-sections">
+                        <!-- Social Media Section -->
+                        <div class="premium-unlock-section">
+                            <div class="section-header">
                                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                 </svg>
-                                Follow us on Social Media
-                            </h3>
-                            <p class="unlock-option-description">Follow us and unlock instantly</p>
+                                <span>Follow us on Social Media</span>
+                            </div>
+                            <p class="section-description">Follow us and unlock instantly</p>
                             
-                            <div class="social-buttons">
+                            <div class="social-buttons-grid">
                                 <?php
                                 $facebook = premium_content_get_option('social_facebook_url', '');
                                 $twitter = premium_content_get_option('social_twitter_url', '');
@@ -167,84 +173,88 @@ class Premium_Content_Metered_Paywall {
                                 
                                 if ($facebook): ?>
                                     <a href="<?php echo esc_url($facebook); ?>" 
-                                       class="social-button social-facebook" 
+                                       class="social-btn social-facebook" 
                                        data-network="facebook"
                                        target="_blank" 
                                        rel="noopener noreferrer">
                                         <svg viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                                         </svg>
-                                        Facebook
+                                        <span>Facebook</span>
                                     </a>
                                 <?php endif; ?>
                                 
                                 <?php if ($twitter): ?>
                                     <a href="<?php echo esc_url($twitter); ?>" 
-                                       class="social-button social-twitter" 
+                                       class="social-btn social-twitter" 
                                        data-network="twitter"
                                        target="_blank" 
                                        rel="noopener noreferrer">
                                         <svg viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
                                         </svg>
-                                        Twitter
+                                        <span>Twitter</span>
                                     </a>
                                 <?php endif; ?>
                                 
                                 <?php if ($instagram): ?>
                                     <a href="<?php echo esc_url($instagram); ?>" 
-                                       class="social-button social-instagram" 
+                                       class="social-btn social-instagram" 
                                        data-network="instagram"
                                        target="_blank" 
                                        rel="noopener noreferrer">
                                         <svg viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
                                         </svg>
-                                        Instagram
+                                        <span>Instagram</span>
                                     </a>
                                 <?php endif; ?>
                                 
                                 <?php if ($linkedin): ?>
                                     <a href="<?php echo esc_url($linkedin); ?>" 
-                                       class="social-button social-linkedin" 
+                                       class="social-btn social-linkedin" 
                                        data-network="linkedin"
                                        target="_blank" 
                                        rel="noopener noreferrer">
                                         <svg viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                                         </svg>
-                                        LinkedIn
+                                        <span>LinkedIn</span>
                                     </a>
                                 <?php endif; ?>
                             </div>
                             
                             <div id="social-unlock-status" class="unlock-status" style="display: none;">
-                                <div class="unlock-loader"></div>
-                                <p class="unlock-message">Verifying... Unlocking content...</p>
+                                <div class="spinner-loader"></div>
+                                <p class="status-message">Verifying... Please wait</p>
                             </div>
                         </div>
 
-                        <div class="unlock-divider">
+                        <div class="section-divider">
                             <span>OR</span>
                         </div>
 
-                        <!-- Email Option -->
-                        <div class="premium-email-unlock">
-                            <h3 class="unlock-option-title">
+                        <!-- Email Section -->
+                        <div class="premium-unlock-section">
+                            <div class="section-header">
                                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                                     <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                                 </svg>
-                                Unlock with Email
-                            </h3>
-                            <p class="unlock-option-description">Get 30 days of full access</p>
+                                <span>Unlock with Email</span>
+                            </div>
+                            <p class="section-description">Get 30 days of full access</p>
                             
-                            <?php echo Premium_Content_CF7_Handler::render_form_in_gate($post_id); ?>
+                            <div class="email-form-wrapper">
+                                <?php echo Premium_Content_CF7_Handler::render_form_in_gate($post_id); ?>
+                            </div>
                         </div>
                     </div>
                 <?php else: ?>
                     <!-- Email Only Mode -->
-                    <div class="premium-email-gate-single">
-                        <?php echo Premium_Content_CF7_Handler::render_form_in_gate($post_id); ?>
+                    <div class="premium-unlock-section premium-email-only">
+                        <div class="email-form-wrapper">
+                            <?php echo Premium_Content_CF7_Handler::render_form_in_gate($post_id); ?>
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -253,6 +263,13 @@ class Premium_Content_Metered_Paywall {
                 <?php echo $content; ?>
             </div>
         </div>
+        
+        <script>
+        // Hide audio player
+        jQuery(document).ready(function($) {
+            $('#ai-voice-player-wrapper').hide();
+        });
+        </script>
         <?php
         return ob_get_clean();
     }
@@ -366,18 +383,43 @@ class Premium_Content_Metered_Paywall {
     }
 
     /**
-     * Truncate content
+     * Truncate content to show 1-2 paragraphs
      */
     private function truncate_content($content, $word_count = 200) {
-        $content = wp_strip_all_tags($content);
-        $words = explode(' ', $content);
+        // Strip shortcodes first
+        $content = strip_shortcodes($content);
         
-        if (count($words) > $word_count) {
-            $words = array_slice($words, 0, $word_count);
-            $content = implode(' ', $words) . '...';
+        // Get paragraphs
+        $paragraphs = explode('</p>', $content);
+        
+        // Get first 1-2 paragraphs (depending on length)
+        $result = '';
+        $count = 0;
+        $max_paragraphs = 2;
+        
+        foreach ($paragraphs as $paragraph) {
+            if ($count >= $max_paragraphs) {
+                break;
+            }
+            
+            if (trim(strip_tags($paragraph))) {
+                $result .= $paragraph . '</p>';
+                $count++;
+            }
         }
         
-        return '<p>' . esc_html($content) . '</p>';
+        // If no paragraphs found, fall back to word count
+        if (empty($result)) {
+            $content = wp_strip_all_tags($content);
+            $words = explode(' ', $content);
+            if (count($words) > $word_count) {
+                $words = array_slice($words, 0, $word_count);
+                $content = implode(' ', $words) . '...';
+            }
+            return '<p>' . esc_html($content) . '</p>';
+        }
+        
+        return $result;
     }
 
     /**

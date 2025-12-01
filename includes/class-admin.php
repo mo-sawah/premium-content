@@ -578,14 +578,106 @@ class Premium_Content_Admin {
      * Render subscribers page
      */
     public function render_subscribers() {
+        global $wpdb;
+        
+        $subscriptions_table = $wpdb->prefix . 'premium_subscriptions';
+        $plans_table = $wpdb->prefix . 'premium_plans';
+        
+        // Get all subscriptions with plan info
+        $subscriptions = $wpdb->get_results("
+            SELECT s.*, p.name as plan_name, u.user_email, u.display_name
+            FROM $subscriptions_table s
+            LEFT JOIN $plans_table p ON s.plan_id = p.id
+            LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID
+            ORDER BY s.created_at DESC
+            LIMIT 50
+        ");
+        
         ?>
         <div class="wrap premium-admin-wrap">
             <h1 class="premium-page-title">
                 <span class="dashicons dashicons-groups"></span>
                 Subscribers
             </h1>
-            <p>Subscriber management coming soon...</p>
+
+            <div class="premium-card">
+                <div class="premium-card-header">
+                    <h2>Active Subscriptions</h2>
+                    <p>Manage your subscribers and their subscriptions</p>
+                </div>
+                <div class="premium-card-body">
+                    <?php if (empty($subscriptions)): ?>
+                        <p style="text-align: center; padding: 40px 20px; color: #6b7280;">
+                            No subscriptions yet. Subscribers will appear here once they purchase a plan.
+                        </p>
+                    <?php else: ?>
+                        <table class="wp-list-table widefat fixed striped">
+                            <thead>
+                                <tr>
+                                    <th>Subscriber</th>
+                                    <th>Email</th>
+                                    <th>Plan</th>
+                                    <th>Status</th>
+                                    <th>Started</th>
+                                    <th>Expires</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($subscriptions as $sub): ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?php echo esc_html($sub->display_name ?: 'User #' . $sub->user_id); ?></strong>
+                                        </td>
+                                        <td><?php echo esc_html($sub->user_email); ?></td>
+                                        <td><?php echo esc_html($sub->plan_name); ?></td>
+                                        <td>
+                                            <span class="status-badge status-<?php echo esc_attr($sub->status); ?>">
+                                                <?php echo esc_html(ucfirst($sub->status)); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo esc_html(date('M d, Y', strtotime($sub->started_at))); ?></td>
+                                        <td>
+                                            <?php 
+                                            if ($sub->expires_at) {
+                                                echo esc_html(date('M d, Y', strtotime($sub->expires_at)));
+                                            } else {
+                                                echo 'Lifetime';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><?php echo esc_html(ucfirst($sub->payment_method)); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
+        
+        <style>
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-badge.status-cancelled {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-badge.status-expired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        </style>
         <?php
     }
 
@@ -730,13 +822,90 @@ class Premium_Content_Admin {
      * Render general settings
      */
     public function render_general_settings() {
+        if (isset($_POST['submit']) && check_admin_referer('premium_content_settings')) {
+            // Save text settings
+            update_option('premium_content_paywall_title', sanitize_text_field($_POST['paywall_title']));
+            update_option('premium_content_paywall_description', sanitize_textarea_field($_POST['paywall_description']));
+            update_option('premium_content_counter_text', sanitize_text_field($_POST['counter_text']));
+            update_option('premium_content_limit_reached_text', sanitize_textarea_field($_POST['limit_reached_text']));
+            update_option('premium_content_exclude_admins', isset($_POST['exclude_admins']) ? '1' : '0');
+            update_option('premium_content_debug_mode', isset($_POST['debug_mode']) ? '1' : '0');
+            
+            echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
+        }
         ?>
         <div class="wrap premium-admin-wrap">
             <h1 class="premium-page-title">
                 <span class="dashicons dashicons-admin-generic"></span>
                 General Settings
             </h1>
-            <p>General settings coming soon...</p>
+
+            <form method="post" class="premium-settings-form">
+                <?php wp_nonce_field('premium_content_settings'); ?>
+
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>Paywall Text Settings</h2>
+                        <p>Customize the text shown in your paywalls</p>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-group">
+                            <label class="premium-label">Paywall Title</label>
+                            <input type="text" name="paywall_title" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('paywall_title', 'Subscribe to Continue Reading')); ?>">
+                            <p class="premium-description">Main title shown in premium paywall</p>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Paywall Description</label>
+                            <textarea name="paywall_description" class="premium-textarea" rows="3"><?php echo esc_textarea(premium_content_get_option('paywall_description', 'Get unlimited access to all premium content')); ?></textarea>
+                            <p class="premium-description">Description shown in premium paywall</p>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Counter Text</label>
+                            <input type="text" name="counter_text" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('counter_text', 'You have {remaining} free articles remaining')); ?>">
+                            <p class="premium-description">Use {remaining} as placeholder for article count</p>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Limit Reached Text</label>
+                            <textarea name="limit_reached_text" class="premium-textarea" rows="2"><?php echo esc_textarea(premium_content_get_option('limit_reached_text', "You've reached your free article limit for this month")); ?></textarea>
+                            <p class="premium-description">Message shown when metered limit is reached</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>Advanced Options</h2>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="exclude_admins" value="1" 
+                                       <?php checked(premium_content_get_option('exclude_admins', '1'), '1'); ?>>
+                                Exclude administrators from paywall
+                            </label>
+                            <p class="premium-description">Admins will always have full access to content</p>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="debug_mode" value="1" 
+                                       <?php checked(premium_content_get_option('debug_mode', '0'), '1'); ?>>
+                                Enable debug mode
+                            </label>
+                            <p class="premium-description">Log detailed information for troubleshooting</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-form-actions">
+                    <button type="submit" name="submit" class="button button-primary button-hero">Save Settings</button>
+                </div>
+            </form>
         </div>
         <?php
     }

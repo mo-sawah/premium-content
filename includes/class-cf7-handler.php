@@ -78,30 +78,10 @@ class Premium_Content_CF7_Handler {
     }
 
     /**
-     * Validate corporate email domains
+     * Validate email (accepts all valid emails)
      */
     public function validate_email($result, $tag) {
-        $name = $tag->name;
-        
-        if ($name !== 'premium_email') {
-            return $result;
-        }
-
-        $value = isset($_POST[$name]) ? sanitize_email($_POST[$name]) : '';
-        
-        if ($value) {
-            $personal_domains = array(
-                'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
-                'aol.com', 'icloud.com', 'live.com', 'msn.com'
-            );
-            
-            $email_domain = substr(strrchr($value, "@"), 1);
-            
-            if (in_array(strtolower($email_domain), $personal_domains)) {
-                $result->invalidate($tag, 'Please use a corporate email address. Personal email addresses are not accepted.');
-            }
-        }
-
+        // Accept all valid emails - no domain restrictions
         return $result;
     }
 

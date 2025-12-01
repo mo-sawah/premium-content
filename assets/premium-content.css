@@ -559,3 +559,425 @@
     font-size: 16px;
   }
 }
+/* ===================================
+   MODERN EMAIL GATE DESIGN
+   =================================== */
+
+/* Modern Gate Container */
+.premium-modern-gate {
+  max-width: 700px;
+  margin: 40px auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Gate Header */
+.premium-gate-header {
+  text-align: center;
+  padding: 40px 40px 30px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.premium-lock-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.premium-gate-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+}
+
+.premium-gate-description {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Unlock Choice */
+.premium-unlock-choice {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 24px 0 0 0;
+  padding: 0 40px;
+}
+
+/* Unlock Sections */
+.premium-unlock-sections {
+  padding: 24px 40px 40px;
+}
+
+.premium-unlock-section {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.premium-unlock-section:hover {
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.premium-unlock-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Email Only Mode */
+.premium-email-only {
+  margin-bottom: 0;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.section-header svg {
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.section-header span {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.section-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+}
+
+/* Social Buttons Grid */
+.social-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  color: white;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.social-btn svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.social-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.social-btn:active {
+  transform: translateY(-1px);
+}
+
+.social-facebook {
+  background: #1877f2;
+}
+
+.social-facebook:hover {
+  background: #0d64d8;
+}
+
+.social-twitter {
+  background: #1da1f2;
+}
+
+.social-twitter:hover {
+  background: #0c85d0;
+}
+
+.social-instagram {
+  background: linear-gradient(135deg, #f09433 0%, #dc2743 50%, #bc1888 100%);
+}
+
+.social-instagram:hover {
+  opacity: 0.9;
+}
+
+.social-linkedin {
+  background: #0077b5;
+}
+
+.social-linkedin:hover {
+  background: #005885;
+}
+
+/* Unlock Status */
+.unlock-status {
+  text-align: center;
+  padding: 24px 20px;
+  margin-top: 20px;
+  background: #eff6ff;
+  border-radius: 8px;
+}
+
+.spinner-loader {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 12px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status-message {
+  font-size: 14px;
+  color: #667eea;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Section Divider */
+.section-divider {
+  position: relative;
+  text-align: center;
+  margin: 24px 0;
+}
+
+.section-divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.section-divider span {
+  position: relative;
+  display: inline-block;
+  padding: 0 16px;
+  background: white;
+  color: #9ca3af;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Email Form Wrapper */
+.email-form-wrapper .wpcf7 {
+  margin: 0;
+}
+
+.email-form-wrapper .wpcf7-form p {
+  margin: 0 0 16px 0;
+}
+
+.email-form-wrapper .wpcf7-form p:last-child {
+  margin-bottom: 0;
+}
+
+/* CF7 Email Input */
+.email-form-wrapper input[type="email"],
+.email-form-wrapper input.wpcf7-email {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.email-form-wrapper input[type="email"]:focus,
+.email-form-wrapper input.wpcf7-email:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* CF7 Checkbox */
+.email-form-wrapper .wpcf7-list-item {
+  margin: 0;
+}
+
+.email-form-wrapper .wpcf7-list-item-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.email-form-wrapper input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* CF7 Submit Button */
+.email-form-wrapper input[type="submit"],
+.email-form-wrapper .wpcf7-submit {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.email-form-wrapper input[type="submit"]:hover,
+.email-form-wrapper .wpcf7-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.email-form-wrapper input[type="submit"]:active,
+.email-form-wrapper .wpcf7-submit:active {
+  transform: translateY(0);
+}
+
+/* CF7 Messages */
+.email-form-wrapper .wpcf7-response-output {
+  margin: 16px 0 0 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: none;
+}
+
+.email-form-wrapper .wpcf7-mail-sent-ok {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.email-form-wrapper .wpcf7-validation-errors,
+.email-form-wrapper .wpcf7-mail-sent-ng {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.email-form-wrapper .wpcf7-not-valid-tip {
+  font-size: 13px;
+  color: #dc2626;
+  margin-top: 6px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .premium-modern-gate {
+    margin: 30px 20px;
+  }
+
+  .premium-gate-header {
+    padding: 32px 24px 24px;
+  }
+
+  .premium-unlock-choice {
+    padding: 0 24px;
+  }
+
+  .premium-unlock-sections {
+    padding: 20px 24px 32px;
+  }
+
+  .premium-unlock-section {
+    padding: 24px 20px;
+  }
+
+  .premium-gate-title {
+    font-size: 22px;
+  }
+
+  .social-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header span {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .premium-modern-gate {
+    margin: 20px 16px;
+    border-radius: 12px;
+  }
+
+  .premium-gate-header {
+    padding: 24px 20px 20px;
+  }
+
+  .premium-lock-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .premium-gate-title {
+    font-size: 20px;
+  }
+
+  .premium-gate-description {
+    font-size: 14px;
+  }
+
+  .premium-unlock-sections {
+    padding: 16px 20px 24px;
+  }
+
+  .premium-unlock-section {
+    padding: 20px 16px;
+  }
+}
