@@ -1,5 +1,5 @@
 /* ===================================
-   metered-paywall.js - Frontend View Tracking
+   metered-paywall.js - Frontend View Tracking & Unlock
    =================================== */
 
 (function () {
@@ -105,21 +105,105 @@
 
   // Handle CF7 form submission success (for email gate mode)
   jQuery(document).on("wpcf7mailsent", function (event) {
-    // Hide paywall and show full content
+    unlockContent("Email submitted successfully! Access granted.");
+  });
+
+  // Handle social media unlock
+  jQuery(document).on("click", ".social-button", function (e) {
+    e.preventDefault();
+
+    var $button = jQuery(this);
+    var network = $button.data("network");
+    var socialUrl = $button.attr("href");
+
+    // Open social media in new tab
+    window.open(socialUrl, "_blank");
+
+    // Show loading status
+    jQuery("#social-unlock-status").show();
+    jQuery(".social-buttons").hide();
+
+    // Get unlock delay from settings (default 4 seconds)
+    var unlockDelay =
+      typeof premiumContentPaywall.unlockDelay !== "undefined"
+        ? premiumContentPaywall.unlockDelay * 1000
+        : 4000;
+
+    // Simulate verification delay then unlock
+    setTimeout(function () {
+      // Send AJAX to record unlock
+      jQuery.ajax({
+        url: premiumContentPaywall.ajaxUrl,
+        type: "POST",
+        data: {
+          action: "premium_social_unlock",
+          nonce: premiumContentPaywall.nonce,
+          post_id: premiumContentPaywall.postId,
+          network: network,
+        },
+        success: function (response) {
+          if (response.success) {
+            unlockContent("Thanks for following! Unlocking content now...");
+          } else {
+            showSocialError("Failed to unlock. Please try email option.");
+          }
+        },
+        error: function () {
+          // Even on error, unlock (graceful degradation)
+          unlockContent("Access granted!");
+        },
+      });
+    }, unlockDelay);
+  });
+
+  // Function to unlock content
+  function unlockContent(message) {
+    // Hide truncated content and paywall
     jQuery(".premium-truncated-content").hide();
-    jQuery("#premium-paywall").hide();
+    jQuery("#premium-content-gate").hide();
+
+    // Show full content
     jQuery(".premium-full-content").show();
 
     // Show success message
     var $successMsg = jQuery(
-      '<div class="premium-alert premium-alert-success" style="margin: 20px 0; animation: fadeIn 0.3s;">Access granted! Enjoy the full article.</div>'
+      '<div class="premium-alert premium-alert-success" style="margin: 20px 0; padding: 16px 20px; background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; animation: fadeIn 0.3s;">' +
+        message +
+        "</div>"
     );
     jQuery(".premium-content-wrapper").prepend($successMsg);
+
+    // Scroll to top of content
+    jQuery("html, body").animate(
+      {
+        scrollTop: jQuery(".premium-content-wrapper").offset().top - 100,
+      },
+      500
+    );
 
     setTimeout(function () {
       $successMsg.fadeOut(300, function () {
         jQuery(this).remove();
       });
     }, 5000);
-  });
+  }
+
+  // Function to show social unlock error
+  function showSocialError(message) {
+    jQuery("#social-unlock-status").hide();
+    jQuery(".social-buttons").show();
+
+    var $errorMsg = jQuery(
+      '<div class="premium-alert premium-alert-error" style="margin: 15px 0; padding: 12px 16px; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; border-radius: 8px;">' +
+        message +
+        "</div>"
+    );
+    jQuery(".premium-social-unlock").prepend($errorMsg);
+
+    setTimeout(function () {
+      $errorMsg.fadeOut(300, function () {
+        jQuery(this).remove();
+      });
+    }, 5000);
+  }
 })();

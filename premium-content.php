@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Premium Content Pro
  * Description: Advanced content monetization with metered paywall, subscriptions, and payment processing.
- * Version: 2.0.24
+ * Version: 2.0.25
  * Author: Mohamed Sawah
  * Requires PHP: 7.4
  */
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 
 // Define plugin constants
-define('PREMIUM_CONTENT_VERSION', '2.0.24');
+define('PREMIUM_CONTENT_VERSION', '2.0.25');
 define('PREMIUM_CONTENT_PATH', plugin_dir_path(__FILE__));
 define('PREMIUM_CONTENT_URL', plugin_dir_url(__FILE__));
 
@@ -135,6 +135,7 @@ function premium_content_admin_assets($hook) {
                 'postId' => get_the_ID(),
                 'isUserLoggedIn' => is_user_logged_in(),
                 'hasSubscription' => premium_content_user_has_subscription(),
+                'unlockDelay' => intval(premium_content_get_option('social_unlock_delay', 4)),
                 'strings' => array(
                     'articlesRemaining' => __('You have %d free articles remaining this month', 'premium-content'),
                     'lastArticle' => __('This is your last free article!', 'premium-content'),

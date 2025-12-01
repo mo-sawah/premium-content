@@ -237,6 +237,16 @@ class Premium_Content_Installer {
             'cf7_form_id' => '',
             'cf7_auto_created' => '0',
             
+            // Email Gate Settings
+            'email_gate_title' => 'Unlock This Content',
+            'email_gate_description' => 'Get instant access to this article and all premium content for 30 days.',
+            'email_gate_social_enabled' => '0',
+            'social_facebook_url' => '',
+            'social_twitter_url' => '',
+            'social_instagram_url' => '',
+            'social_linkedin_url' => '',
+            'social_unlock_delay' => '4',
+            
             // Payment Settings
             'stripe_enabled' => '0',
             'stripe_test_mode' => '1',

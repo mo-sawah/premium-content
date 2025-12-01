@@ -1,200 +1,519 @@
 <?php
 /**
- * Handles all admin functionality and settings pages
+ * Handles admin interface and settings
  */
 class Premium_Content_Admin {
 
+    public function __construct() {
+        add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_init', array($this, 'register_settings'));
+        
+        // AJAX handlers
+        add_action('wp_ajax_premium_test_stripe', array($this, 'ajax_test_stripe'));
+        add_action('wp_ajax_premium_test_paypal', array($this, 'ajax_test_paypal'));
+    }
+
     /**
-     * Render Payment Gateways Page
+     * Add admin menu
      */
-    public function render_payments_page() {
-        if (isset($_POST['premium_save_payments']) && check_admin_referer('premium_payment_settings')) {
-            $this->save_payment_settings();
-            echo '<div class="notice notice-success"><p>Payment settings saved!</p></div>';
-        }
+    public function add_admin_menu() {
+        add_menu_page(
+            'Premium Content',
+            'Premium Content',
+            'manage_options',
+            'premium-content',
+            array($this, 'render_dashboard'),
+            'dashicons-lock',
+            30
+        );
 
-        // Stripe settings
-        $stripe_enabled = premium_content_get_option('stripe_enabled', '0');
-        $stripe_test_mode = premium_content_get_option('stripe_test_mode', '1');
-        $stripe_test_pk = premium_content_get_option('stripe_test_publishable_key', '');
-        $stripe_test_sk = premium_content_get_option('stripe_test_secret_key', '');
-        $stripe_test_webhook = premium_content_get_option('stripe_test_webhook_secret', '');
-        $stripe_live_pk = premium_content_get_option('stripe_live_publishable_key', '');
-        $stripe_live_sk = premium_content_get_option('stripe_live_secret_key', '');
-        $stripe_live_webhook = premium_content_get_option('stripe_live_webhook_secret', '');
+        add_submenu_page(
+            'premium-content',
+            'Dashboard',
+            'Dashboard',
+            'manage_options',
+            'premium-content',
+            array($this, 'render_dashboard')
+        );
 
-        // PayPal settings
-        $paypal_enabled = premium_content_get_option('paypal_enabled', '0');
-        $paypal_test_mode = premium_content_get_option('paypal_test_mode', '1');
-        $paypal_client_id = premium_content_get_option('paypal_client_id', '');
-        $paypal_client_secret = premium_content_get_option('paypal_client_secret', '');
+        add_submenu_page(
+            'premium-content',
+            'Access Control',
+            'Access Control',
+            'manage_options',
+            'premium-content-access',
+            array($this, 'render_access_settings')
+        );
 
+        add_submenu_page(
+            'premium-content',
+            'Plans',
+            'Plans',
+            'manage_options',
+            'premium-content-plans',
+            array($this, 'render_plans')
+        );
+
+        add_submenu_page(
+            'premium-content',
+            'Subscribers',
+            'Subscribers',
+            'manage_options',
+            'premium-content-subscribers',
+            array($this, 'render_subscribers')
+        );
+
+        add_submenu_page(
+            'premium-content',
+            'Payment Settings',
+            'Payment Settings',
+            'manage_options',
+            'premium-content-payments',
+            array($this, 'render_payment_settings')
+        );
+
+        add_submenu_page(
+            'premium-content',
+            'Settings',
+            'Settings',
+            'manage_options',
+            'premium-content-settings',
+            array($this, 'render_general_settings')
+        );
+    }
+
+    /**
+     * Register settings
+     */
+    public function register_settings() {
+        register_setting('premium_content_access', 'premium_content_access_mode');
+        register_setting('premium_content_access', 'premium_content_metered_limit');
+        register_setting('premium_content_access', 'premium_content_metered_period');
+        register_setting('premium_content_access', 'premium_content_metered_show_counter');
+        register_setting('premium_content_access', 'premium_content_metered_counter_position');
+        register_setting('premium_content_access', 'premium_content_cf7_form_id');
+        
+        // Email Gate Settings
+        register_setting('premium_content_access', 'premium_content_email_gate_title');
+        register_setting('premium_content_access', 'premium_content_email_gate_description');
+        register_setting('premium_content_access', 'premium_content_email_gate_social_enabled');
+        register_setting('premium_content_access', 'premium_content_social_facebook_url');
+        register_setting('premium_content_access', 'premium_content_social_twitter_url');
+        register_setting('premium_content_access', 'premium_content_social_instagram_url');
+        register_setting('premium_content_access', 'premium_content_social_linkedin_url');
+        register_setting('premium_content_access', 'premium_content_social_unlock_delay');
+        
+        // Payment Settings
+        register_setting('premium_content_payments', 'premium_content_stripe_enabled');
+        register_setting('premium_content_payments', 'premium_content_stripe_test_mode');
+        register_setting('premium_content_payments', 'premium_content_stripe_test_publishable_key');
+        register_setting('premium_content_payments', 'premium_content_stripe_test_secret_key');
+        register_setting('premium_content_payments', 'premium_content_stripe_live_publishable_key');
+        register_setting('premium_content_payments', 'premium_content_stripe_live_secret_key');
+        
+        register_setting('premium_content_payments', 'premium_content_paypal_enabled');
+        register_setting('premium_content_payments', 'premium_content_paypal_test_mode');
+        register_setting('premium_content_payments', 'premium_content_paypal_client_id');
+        register_setting('premium_content_payments', 'premium_content_paypal_client_secret');
+        
+        // Text Settings
+        register_setting('premium_content_settings', 'premium_content_paywall_title');
+        register_setting('premium_content_settings', 'premium_content_paywall_description');
+        register_setting('premium_content_settings', 'premium_content_counter_text');
+        register_setting('premium_content_settings', 'premium_content_limit_reached_text');
+        register_setting('premium_content_settings', 'premium_content_exclude_admins');
+    }
+
+    /**
+     * Render dashboard
+     */
+    public function render_dashboard() {
+        $stats = Premium_Content_Subscription_Manager::get_statistics();
+        $email_stats = Premium_Content_CF7_Handler::get_email_statistics();
+        
         ?>
         <div class="wrap premium-admin-wrap">
             <h1 class="premium-page-title">
-                <span class="dashicons dashicons-cart"></span>
-                Payment Gateways
+                <span class="dashicons dashicons-lock"></span>
+                Premium Content Dashboard
+            </h1>
+
+            <div class="premium-dashboard-grid">
+                <div class="premium-stat-card">
+                    <div class="premium-stat-icon premium-stat-subscribers">
+                        <span class="dashicons dashicons-groups"></span>
+                    </div>
+                    <div class="premium-stat-content">
+                        <div class="premium-stat-number"><?php echo esc_html($stats['total_active']); ?></div>
+                        <div class="premium-stat-label">Active Subscribers</div>
+                    </div>
+                </div>
+
+                <div class="premium-stat-card">
+                    <div class="premium-stat-icon premium-stat-revenue">
+                        <span class="dashicons dashicons-money-alt"></span>
+                    </div>
+                    <div class="premium-stat-content">
+                        <div class="premium-stat-number">$<?php echo number_format($stats['total_revenue'], 2); ?></div>
+                        <div class="premium-stat-label">Total Revenue</div>
+                    </div>
+                </div>
+
+                <div class="premium-stat-card">
+                    <div class="premium-stat-icon premium-stat-emails">
+                        <span class="dashicons dashicons-email"></span>
+                    </div>
+                    <div class="premium-stat-content">
+                        <div class="premium-stat-number"><?php echo esc_html($email_stats['total_emails']); ?></div>
+                        <div class="premium-stat-label">Email Subscribers</div>
+                    </div>
+                </div>
+
+                <div class="premium-stat-card">
+                    <div class="premium-stat-icon premium-stat-views">
+                        <span class="dashicons dashicons-visibility"></span>
+                    </div>
+                    <div class="premium-stat-content">
+                        <div class="premium-stat-number"><?php echo esc_html($email_stats['this_month']); ?></div>
+                        <div class="premium-stat-label">This Month</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="premium-dashboard-section">
+                <div class="premium-section-header">
+                    <h2>Quick Actions</h2>
+                </div>
+                <div class="premium-quick-actions">
+                    <a href="<?php echo admin_url('admin.php?page=premium-content-access'); ?>" class="premium-action-button">
+                        <span class="dashicons dashicons-admin-settings"></span>
+                        Access Control
+                    </a>
+                    <a href="<?php echo admin_url('admin.php?page=premium-content-plans'); ?>" class="premium-action-button">
+                        <span class="dashicons dashicons-cart"></span>
+                        Manage Plans
+                    </a>
+                    <a href="<?php echo admin_url('admin.php?page=premium-content-payments'); ?>" class="premium-action-button">
+                        <span class="dashicons dashicons-money"></span>
+                        Payment Settings
+                    </a>
+                    <a href="<?php echo admin_url('post-new.php?post_type=post'); ?>" class="premium-action-button">
+                        <span class="dashicons dashicons-edit"></span>
+                        Create Content
+                    </a>
+                </div>
+            </div>
+
+            <div class="premium-dashboard-section">
+                <div class="premium-section-header">
+                    <h2>Current Configuration</h2>
+                </div>
+                <div class="premium-status-grid">
+                    <div class="premium-status-item">
+                        <span class="status-label">Access Mode:</span>
+                        <span class="status-badge status-<?php echo esc_attr(premium_content_get_option('access_mode', 'free')); ?>">
+                            <?php echo esc_html(ucfirst(str_replace('_', ' ', premium_content_get_option('access_mode', 'free')))); ?>
+                        </span>
+                    </div>
+                    <div class="premium-status-item">
+                        <span class="status-label">Stripe:</span>
+                        <span class="status-value">
+                            <?php echo premium_content_get_option('stripe_enabled', '0') === '1' ? '✓ Enabled' : '✗ Disabled'; ?>
+                        </span>
+                    </div>
+                    <div class="premium-status-item">
+                        <span class="status-label">PayPal:</span>
+                        <span class="status-value">
+                            <?php echo premium_content_get_option('paypal_enabled', '0') === '1' ? '✓ Enabled' : '✗ Disabled'; ?>
+                        </span>
+                    </div>
+                    <div class="premium-status-item">
+                        <span class="status-label">CF7 Form:</span>
+                        <span class="status-value">
+                            <?php echo premium_content_get_option('cf7_form_id', '') ? '✓ Configured' : '✗ Not Set'; ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render access control settings
+     */
+    public function render_access_settings() {
+        if (isset($_POST['submit']) && check_admin_referer('premium_content_access')) {
+            // Save settings
+            update_option('premium_content_access_mode', sanitize_text_field($_POST['access_mode']));
+            update_option('premium_content_metered_limit', intval($_POST['metered_limit']));
+            update_option('premium_content_metered_period', sanitize_text_field($_POST['metered_period']));
+            update_option('premium_content_metered_show_counter', isset($_POST['metered_show_counter']) ? '1' : '0');
+            update_option('premium_content_metered_counter_position', sanitize_text_field($_POST['metered_counter_position']));
+            update_option('premium_content_cf7_form_id', sanitize_text_field($_POST['cf7_form_id']));
+            
+            // Email Gate Settings
+            update_option('premium_content_email_gate_title', sanitize_text_field($_POST['email_gate_title']));
+            update_option('premium_content_email_gate_description', sanitize_textarea_field($_POST['email_gate_description']));
+            update_option('premium_content_email_gate_social_enabled', isset($_POST['email_gate_social_enabled']) ? '1' : '0');
+            update_option('premium_content_social_facebook_url', esc_url_raw($_POST['social_facebook_url']));
+            update_option('premium_content_social_twitter_url', esc_url_raw($_POST['social_twitter_url']));
+            update_option('premium_content_social_instagram_url', esc_url_raw($_POST['social_instagram_url']));
+            update_option('premium_content_social_linkedin_url', esc_url_raw($_POST['social_linkedin_url']));
+            update_option('premium_content_social_unlock_delay', intval($_POST['social_unlock_delay']));
+            
+            echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
+        }
+
+        $access_mode = premium_content_get_option('access_mode', 'free');
+        $cf7_forms = Premium_Content_CF7_Handler::get_forms_dropdown();
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-admin-settings"></span>
+                Access Control Settings
             </h1>
 
             <form method="post" class="premium-settings-form">
-                <?php wp_nonce_field('premium_payment_settings'); ?>
+                <?php wp_nonce_field('premium_content_access'); ?>
 
-                <!-- Stripe Settings -->
                 <div class="premium-card">
                     <div class="premium-card-header">
-                        <h2>Stripe Configuration</h2>
-                        <label class="premium-toggle">
-                            <input type="checkbox" name="stripe_enabled" value="1" <?php checked($stripe_enabled, '1'); ?>>
-                            <span>Enable Stripe</span>
-                        </label>
+                        <h2>Content Access Mode</h2>
+                        <p>Choose how users can access your premium content</p>
                     </div>
-                    <div class="premium-card-body" style="<?php echo $stripe_enabled !== '1' ? 'opacity: 0.5;' : ''; ?>">
-                        <div class="premium-form-group">
-                            <label class="premium-checkbox-label">
-                                <input type="checkbox" name="stripe_test_mode" value="1" <?php checked($stripe_test_mode, '1'); ?>>
-                                <span>Test Mode</span>
+                    <div class="premium-card-body">
+                        <div class="premium-mode-selector">
+                            <label class="premium-mode-option <?php echo $access_mode === 'free' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="free" <?php checked($access_mode, 'free'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">🔓</div>
+                                    <h3 class="mode-title">Free Access</h3>
+                                    <p class="mode-description">All content is freely accessible</p>
+                                </div>
                             </label>
-                            <p class="premium-description">Use test API keys for development</p>
-                        </div>
 
-                        <h3 style="margin: 20px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Test API Keys</h3>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Test Publishable Key</label>
-                            <input type="text" name="stripe_test_publishable_key" value="<?php echo esc_attr($stripe_test_pk); ?>" class="premium-input" placeholder="pk_test_...">
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Test Secret Key</label>
-                            <input type="password" name="stripe_test_secret_key" value="<?php echo esc_attr($stripe_test_sk); ?>" class="premium-input" placeholder="sk_test_...">
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Test Webhook Secret</label>
-                            <input type="password" name="stripe_test_webhook_secret" value="<?php echo esc_attr($stripe_test_webhook); ?>" class="premium-input" placeholder="whsec_...">
-                            <p class="premium-description">
-                                Webhook URL: <code><?php echo admin_url('admin-ajax.php?action=premium_stripe_webhook'); ?></code>
-                            </p>
-                        </div>
+                            <label class="premium-mode-option <?php echo $access_mode === 'metered' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="metered" <?php checked($access_mode, 'metered'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">📊</div>
+                                    <h3 class="mode-title">Metered Paywall</h3>
+                                    <p class="mode-description">Limited free articles per period</p>
+                                </div>
+                            </label>
 
-                        <h3 style="margin: 20px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Live API Keys</h3>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Live Publishable Key</label>
-                            <input type="text" name="stripe_live_publishable_key" value="<?php echo esc_attr($stripe_live_pk); ?>" class="premium-input" placeholder="pk_live_...">
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Live Secret Key</label>
-                            <input type="password" name="stripe_live_secret_key" value="<?php echo esc_attr($stripe_live_sk); ?>" class="premium-input" placeholder="sk_live_...">
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Live Webhook Secret</label>
-                            <input type="password" name="stripe_live_webhook_secret" value="<?php echo esc_attr($stripe_live_webhook); ?>" class="premium-input" placeholder="whsec_...">
-                        </div>
+                            <label class="premium-mode-option <?php echo $access_mode === 'email_gate' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="email_gate" <?php checked($access_mode, 'email_gate'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">📧</div>
+                                    <h3 class="mode-title">Email Gate</h3>
+                                    <p class="mode-description">Email required for 30-day access</p>
+                                </div>
+                            </label>
 
-                        <div class="premium-form-group">
-                            <button type="button" id="test-stripe" class="button">Test Connection</button>
-                            <span id="stripe-test-result"></span>
-                        </div>
-
-                        <div class="premium-alert premium-alert-info">
-                            <strong>Setup Instructions:</strong>
-                            <ol style="margin: 10px 0 0 20px;">
-                                <li>Go to <a href="https://dashboard.stripe.com/apikeys" target="_blank">Stripe Dashboard</a></li>
-                                <li>Copy your API keys</li>
-                                <li>Create a webhook endpoint with URL above</li>
-                                <li>Select events: checkout.session.completed, customer.subscription.*</li>
-                            </ol>
+                            <label class="premium-mode-option <?php echo $access_mode === 'premium' ? 'active' : ''; ?>">
+                                <input type="radio" name="access_mode" value="premium" <?php checked($access_mode, 'premium'); ?>>
+                                <div class="mode-content">
+                                    <div class="mode-icon">🔒</div>
+                                    <h3 class="mode-title">Premium Only</h3>
+                                    <p class="mode-description">Subscription required</p>
+                                </div>
+                            </label>
                         </div>
                     </div>
                 </div>
 
-                <!-- PayPal Settings -->
-                <div class="premium-card">
+                <!-- Metered Settings -->
+                <div class="premium-card metered-settings" style="display: <?php echo $access_mode === 'metered' ? 'block' : 'none'; ?>;">
                     <div class="premium-card-header">
-                        <h2>PayPal Configuration</h2>
-                        <label class="premium-toggle">
-                            <input type="checkbox" name="paypal_enabled" value="1" <?php checked($paypal_enabled, '1'); ?>>
-                            <span>Enable PayPal</span>
-                        </label>
+                        <h2>Metered Paywall Settings</h2>
                     </div>
-                    <div class="premium-card-body" style="<?php echo $paypal_enabled !== '1' ? 'opacity: 0.5;' : ''; ?>">
+                    <div class="premium-card-body">
+                        <div class="premium-form-row">
+                            <div class="premium-form-group">
+                                <label class="premium-label">Article Limit</label>
+                                <input type="number" name="metered_limit" class="premium-input" 
+                                       value="<?php echo esc_attr(premium_content_get_option('metered_limit', 3)); ?>" 
+                                       min="1" max="100">
+                                <p class="premium-description">Number of free articles per period</p>
+                            </div>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">Period</label>
+                                <select name="metered_period" class="premium-select">
+                                    <option value="daily" <?php selected(premium_content_get_option('metered_period'), 'daily'); ?>>Daily</option>
+                                    <option value="weekly" <?php selected(premium_content_get_option('metered_period'), 'weekly'); ?>>Weekly</option>
+                                    <option value="monthly" <?php selected(premium_content_get_option('metered_period'), 'monthly'); ?>>Monthly</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="premium-form-group">
                             <label class="premium-checkbox-label">
-                                <input type="checkbox" name="paypal_test_mode" value="1" <?php checked($paypal_test_mode, '1'); ?>>
-                                <span>Sandbox Mode</span>
+                                <input type="checkbox" name="metered_show_counter" value="1" 
+                                       <?php checked(premium_content_get_option('metered_show_counter', '1'), '1'); ?>>
+                                Show article counter banner
                             </label>
-                            <p class="premium-description">Use sandbox for testing</p>
+                        </div>
+
+                        <div class="premium-form-group counter-position" style="display: <?php echo premium_content_get_option('metered_show_counter', '1') === '1' ? 'block' : 'none'; ?>;">
+                            <label class="premium-label">Counter Position</label>
+                            <select name="metered_counter_position" class="premium-select">
+                                <option value="top" <?php selected(premium_content_get_option('metered_counter_position'), 'top'); ?>>Top</option>
+                                <option value="bottom" <?php selected(premium_content_get_option('metered_counter_position'), 'bottom'); ?>>Bottom</option>
+                                <option value="floating" <?php selected(premium_content_get_option('metered_counter_position'), 'floating'); ?>>Floating</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Gate Settings -->
+                <div class="premium-card email-gate-settings" style="display: <?php echo $access_mode === 'email_gate' ? 'block' : 'none'; ?>;">
+                    <div class="premium-card-header">
+                        <h2>Email Gate Settings</h2>
+                        <p>Configure email collection and social media unlock options</p>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-group">
+                            <label class="premium-label">Gate Title</label>
+                            <input type="text" name="email_gate_title" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('email_gate_title', 'Unlock This Content')); ?>" 
+                                   placeholder="Unlock This Content">
                         </div>
 
                         <div class="premium-form-group">
-                            <label class="premium-label">Client ID</label>
-                            <input type="text" name="paypal_client_id" value="<?php echo esc_attr($paypal_client_id); ?>" class="premium-input">
-                            <p class="premium-description">Works for both sandbox and live</p>
+                            <label class="premium-label">Gate Description</label>
+                            <textarea name="email_gate_description" class="premium-textarea" rows="3"
+                                      placeholder="Get instant access to this article and all premium content for 30 days."><?php echo esc_textarea(premium_content_get_option('email_gate_description', 'Get instant access to this article and all premium content for 30 days.')); ?></textarea>
                         </div>
 
                         <div class="premium-form-group">
-                            <label class="premium-label">Client Secret</label>
-                            <input type="password" name="paypal_client_secret" value="<?php echo esc_attr($paypal_client_secret); ?>" class="premium-input">
+                            <label class="premium-label">Contact Form 7</label>
+                            <select name="cf7_form_id" class="premium-select">
+                                <option value="">Select Form</option>
+                                <?php foreach ($cf7_forms as $form_id => $form_title): ?>
+                                    <option value="<?php echo esc_attr($form_id); ?>" 
+                                            <?php selected(premium_content_get_option('cf7_form_id'), $form_id); ?>>
+                                        <?php echo esc_html($form_title); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php if (empty($cf7_forms)): ?>
+                                <p class="premium-description" style="color: #d63638;">
+                                    Contact Form 7 is not installed or no forms exist. 
+                                    <button type="button" id="premium-create-cf7-form" class="button">Create Form</button>
+                                </p>
+                            <?php endif; ?>
                         </div>
+
+                        <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
 
                         <div class="premium-form-group">
-                            <button type="button" id="test-paypal" class="button">Test Connection</button>
-                            <span id="paypal-test-result"></span>
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="email_gate_social_enabled" value="1" id="social-toggle"
+                                       <?php checked(premium_content_get_option('email_gate_social_enabled', '0'), '1'); ?>>
+                                <strong>Enable Social Media Unlock Option</strong>
+                            </label>
+                            <p class="premium-description">Allow users to unlock content by following on social media OR providing email (not both required)</p>
                         </div>
 
-                        <div class="premium-alert premium-alert-info">
-                            <strong>Setup Instructions:</strong>
-                            <ol style="margin: 10px 0 0 20px;">
-                                <li>Go to <a href="https://developer.paypal.com/dashboard/" target="_blank">PayPal Developer</a></li>
-                                <li>Create an app (sandbox or live)</li>
-                                <li>Copy Client ID and Secret</li>
-                                <li>Configure webhook URL: <code><?php echo admin_url('admin-ajax.php?action=premium_paypal_webhook'); ?></code></li>
-                            </ol>
+                        <div id="social-media-settings" style="display: <?php echo premium_content_get_option('email_gate_social_enabled', '0') === '1' ? 'block' : 'none'; ?>; padding: 20px; background: #f9fafb; border-radius: 8px; margin-top: 20px;">
+                            <h3 style="margin-top: 0;">Social Media Links</h3>
+                            <p style="color: #6b7280; font-size: 14px;">Add your social media URLs. Only filled URLs will be shown as unlock options.</p>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">
+                                    <svg viewBox="0 0 24 24" fill="#1877f2" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">
+                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                    </svg>
+                                    Facebook Page URL
+                                </label>
+                                <input type="url" name="social_facebook_url" class="premium-input" 
+                                       value="<?php echo esc_url(premium_content_get_option('social_facebook_url', '')); ?>" 
+                                       placeholder="https://facebook.com/yourpage">
+                            </div>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">
+                                    <svg viewBox="0 0 24 24" fill="#1da1f2" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">
+                                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                    </svg>
+                                    Twitter Profile URL
+                                </label>
+                                <input type="url" name="social_twitter_url" class="premium-input" 
+                                       value="<?php echo esc_url(premium_content_get_option('social_twitter_url', '')); ?>" 
+                                       placeholder="https://twitter.com/yourprofile">
+                            </div>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">
+                                    <svg viewBox="0 0 24 24" fill="url(#instagram-gradient)" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">
+                                        <defs>
+                                            <linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                                                <stop offset="0%" style="stop-color:#f09433;stop-opacity:1" />
+                                                <stop offset="25%" style="stop-color:#e6683c;stop-opacity:1" />
+                                                <stop offset="50%" style="stop-color:#dc2743;stop-opacity:1" />
+                                                <stop offset="75%" style="stop-color:#cc2366;stop-opacity:1" />
+                                                <stop offset="100%" style="stop-color:#bc1888;stop-opacity:1" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
+                                    </svg>
+                                    Instagram Profile URL
+                                </label>
+                                <input type="url" name="social_instagram_url" class="premium-input" 
+                                       value="<?php echo esc_url(premium_content_get_option('social_instagram_url', '')); ?>" 
+                                       placeholder="https://instagram.com/yourprofile">
+                            </div>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">
+                                    <svg viewBox="0 0 24 24" fill="#0077b5" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">
+                                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                    </svg>
+                                    LinkedIn Page URL
+                                </label>
+                                <input type="url" name="social_linkedin_url" class="premium-input" 
+                                       value="<?php echo esc_url(premium_content_get_option('social_linkedin_url', '')); ?>" 
+                                       placeholder="https://linkedin.com/company/yourcompany">
+                            </div>
+
+                            <div class="premium-form-group">
+                                <label class="premium-label">Unlock Delay (seconds)</label>
+                                <input type="number" name="social_unlock_delay" class="premium-input" 
+                                       value="<?php echo esc_attr(premium_content_get_option('social_unlock_delay', 4)); ?>" 
+                                       min="3" max="10" step="1">
+                                <p class="premium-description">Delay before unlocking content after social media click (3-10 seconds)</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="premium-form-actions">
-                    <button type="submit" name="premium_save_payments" class="button button-primary button-large">Save Payment Settings</button>
+                    <button type="submit" name="submit" class="button button-primary button-hero">Save Settings</button>
                 </div>
             </form>
         </div>
 
         <script>
         jQuery(document).ready(function($) {
-            $('#test-stripe').on('click', function() {
-                var $btn = $(this);
-                var $result = $('#stripe-test-result');
-                $btn.prop('disabled', true).text('Testing...');
-                $result.html('');
-
-                $.post(ajaxurl, {
-                    action: 'premium_test_stripe',
-                    nonce: '<?php echo wp_create_nonce('premium_content_admin'); ?>'
-                }, function(response) {
-                    $btn.prop('disabled', false).text('Test Connection');
-                    if (response.success) {
-                        $result.html('<span style="color: #00a32a; font-weight: bold;">✓ ' + response.data.message + '</span>');
-                    } else {
-                        $result.html('<span style="color: #d63638; font-weight: bold;">✗ ' + response.data + '</span>');
-                    }
-                });
+            // Toggle social settings visibility
+            $('#social-toggle').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#social-media-settings').slideDown(300);
+                } else {
+                    $('#social-media-settings').slideUp(300);
+                }
             });
 
-            $('#test-paypal').on('click', function() {
-                var $btn = $(this);
-                var $result = $('#paypal-test-result');
-                $btn.prop('disabled', true).text('Testing...');
-                $result.html('');
-
-                $.post(ajaxurl, {
-                    action: 'premium_test_paypal',
-                    nonce: '<?php echo wp_create_nonce('premium_content_admin'); ?>'
-                }, function(response) {
-                    $btn.prop('disabled', false).text('Test Connection');
-                    if (response.success) {
-                        $result.html('<span style="color: #00a32a; font-weight: bold;">✓ ' + response.data.message + '</span>');
-                    } else {
-                        $result.html('<span style="color: #d63638; font-weight: bold;">✗ ' + response.data + '</span>');
-                    }
-                });
+            // Toggle email gate settings visibility
+            $('input[name="access_mode"]').on('change', function() {
+                $('.email-gate-settings, .metered-settings').hide();
+                if ($(this).val() === 'email_gate') {
+                    $('.email-gate-settings').slideDown(300);
+                } else if ($(this).val() === 'metered') {
+                    $('.metered-settings').slideDown(300);
+                }
             });
         });
         </script>
@@ -202,28 +521,228 @@ class Premium_Content_Admin {
     }
 
     /**
-     * Save payment settings
+     * Render plans page
      */
-    private function save_payment_settings() {
-        // Stripe
-        premium_content_update_option('stripe_enabled', isset($_POST['stripe_enabled']) ? '1' : '0');
-        premium_content_update_option('stripe_test_mode', isset($_POST['stripe_test_mode']) ? '1' : '0');
-        premium_content_update_option('stripe_test_publishable_key', sanitize_text_field($_POST['stripe_test_publishable_key']));
-        premium_content_update_option('stripe_test_secret_key', sanitize_text_field($_POST['stripe_test_secret_key']));
-        premium_content_update_option('stripe_test_webhook_secret', sanitize_text_field($_POST['stripe_test_webhook_secret']));
-        premium_content_update_option('stripe_live_publishable_key', sanitize_text_field($_POST['stripe_live_publishable_key']));
-        premium_content_update_option('stripe_live_secret_key', sanitize_text_field($_POST['stripe_live_secret_key']));
-        premium_content_update_option('stripe_live_webhook_secret', sanitize_text_field($_POST['stripe_live_webhook_secret']));
+    public function render_plans() {
+        $plans = Premium_Content_Subscription_Manager::get_plans();
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-cart"></span>
+                Subscription Plans
+            </h1>
 
-        // PayPal
-        premium_content_update_option('paypal_enabled', isset($_POST['paypal_enabled']) ? '1' : '0');
-        premium_content_update_option('paypal_test_mode', isset($_POST['paypal_test_mode']) ? '1' : '0');
-        premium_content_update_option('paypal_client_id', sanitize_text_field($_POST['paypal_client_id']));
-        premium_content_update_option('paypal_client_secret', sanitize_text_field($_POST['paypal_client_secret']));
+            <div class="premium-plans-grid">
+                <?php foreach ($plans as $plan): 
+                    $features = json_decode($plan->features, true);
+                ?>
+                    <div class="premium-plan-card">
+                        <div class="plan-header">
+                            <h3><?php echo esc_html($plan->name); ?></h3>
+                            <div class="plan-price">
+                                <span class="currency">$</span>
+                                <span class="amount"><?php echo number_format($plan->price, 0); ?></span>
+                                <?php if ($plan->interval !== 'lifetime'): ?>
+                                    <span class="period">/<?php echo esc_html($plan->interval); ?></span>
+                                <?php else: ?>
+                                    <span class="period">one-time</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="plan-body">
+                            <p class="plan-description"><?php echo esc_html($plan->description); ?></p>
+                            <?php if ($features): ?>
+                                <ul class="plan-features">
+                                    <?php foreach ($features as $feature): ?>
+                                        <li><?php echo esc_html($feature); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+                        <div class="plan-footer">
+                            <span class="plan-status status-<?php echo esc_attr($plan->status); ?>">
+                                <?php echo esc_html(ucfirst($plan->status)); ?>
+                            </span>
+                            <div class="plan-actions">
+                                <a href="#" class="button button-small">Edit</a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php
     }
 
     /**
-     * AJAX: Test Stripe connection
+     * Render subscribers page
+     */
+    public function render_subscribers() {
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-groups"></span>
+                Subscribers
+            </h1>
+            <p>Subscriber management coming soon...</p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render payment settings
+     */
+    public function render_payment_settings() {
+        if (isset($_POST['submit']) && check_admin_referer('premium_content_payments')) {
+            // Save Stripe settings
+            update_option('premium_content_stripe_enabled', isset($_POST['stripe_enabled']) ? '1' : '0');
+            update_option('premium_content_stripe_test_mode', isset($_POST['stripe_test_mode']) ? '1' : '0');
+            update_option('premium_content_stripe_test_publishable_key', sanitize_text_field($_POST['stripe_test_publishable_key']));
+            update_option('premium_content_stripe_test_secret_key', sanitize_text_field($_POST['stripe_test_secret_key']));
+            update_option('premium_content_stripe_live_publishable_key', sanitize_text_field($_POST['stripe_live_publishable_key']));
+            update_option('premium_content_stripe_live_secret_key', sanitize_text_field($_POST['stripe_live_secret_key']));
+            
+            // Save PayPal settings
+            update_option('premium_content_paypal_enabled', isset($_POST['paypal_enabled']) ? '1' : '0');
+            update_option('premium_content_paypal_test_mode', isset($_POST['paypal_test_mode']) ? '1' : '0');
+            update_option('premium_content_paypal_client_id', sanitize_text_field($_POST['paypal_client_id']));
+            update_option('premium_content_paypal_client_secret', sanitize_text_field($_POST['paypal_client_secret']));
+            
+            echo '<div class="notice notice-success"><p>Payment settings saved!</p></div>';
+        }
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-money"></span>
+                Payment Settings
+            </h1>
+
+            <form method="post" class="premium-settings-form">
+                <?php wp_nonce_field('premium_content_payments'); ?>
+
+                <!-- Stripe Settings -->
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>Stripe Settings</h2>
+                        <p>Configure Stripe payment gateway</p>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="stripe_enabled" value="1" 
+                                       <?php checked(premium_content_get_option('stripe_enabled', '0'), '1'); ?>>
+                                Enable Stripe
+                            </label>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="stripe_test_mode" value="1" 
+                                       <?php checked(premium_content_get_option('stripe_test_mode', '1'), '1'); ?>>
+                                Test Mode
+                            </label>
+                        </div>
+
+                        <hr style="margin: 20px 0;">
+
+                        <h3>Test Keys</h3>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Test Publishable Key</label>
+                            <input type="text" name="stripe_test_publishable_key" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('stripe_test_publishable_key', '')); ?>" 
+                                   placeholder="pk_test_...">
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Test Secret Key</label>
+                            <input type="password" name="stripe_test_secret_key" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('stripe_test_secret_key', '')); ?>" 
+                                   placeholder="sk_test_...">
+                        </div>
+
+                        <h3>Live Keys</h3>
+                        <div class="premium-form-group">
+                            <label class="premium-label">Live Publishable Key</label>
+                            <input type="text" name="stripe_live_publishable_key" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('stripe_live_publishable_key', '')); ?>" 
+                                   placeholder="pk_live_...">
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Live Secret Key</label>
+                            <input type="password" name="stripe_live_secret_key" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('stripe_live_secret_key', '')); ?>" 
+                                   placeholder="sk_live_...">
+                        </div>
+
+                        <button type="button" id="test-stripe-connection" class="button">Test Connection</button>
+                    </div>
+                </div>
+
+                <!-- PayPal Settings -->
+                <div class="premium-card">
+                    <div class="premium-card-header">
+                        <h2>PayPal Settings</h2>
+                        <p>Configure PayPal payment gateway</p>
+                    </div>
+                    <div class="premium-card-body">
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="paypal_enabled" value="1" 
+                                       <?php checked(premium_content_get_option('paypal_enabled', '0'), '1'); ?>>
+                                Enable PayPal
+                            </label>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-checkbox-label">
+                                <input type="checkbox" name="paypal_test_mode" value="1" 
+                                       <?php checked(premium_content_get_option('paypal_test_mode', '1'), '1'); ?>>
+                                Sandbox Mode
+                            </label>
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Client ID</label>
+                            <input type="text" name="paypal_client_id" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('paypal_client_id', '')); ?>">
+                        </div>
+
+                        <div class="premium-form-group">
+                            <label class="premium-label">Client Secret</label>
+                            <input type="password" name="paypal_client_secret" class="premium-input" 
+                                   value="<?php echo esc_attr(premium_content_get_option('paypal_client_secret', '')); ?>">
+                        </div>
+
+                        <button type="button" id="test-paypal-connection" class="button">Test Connection</button>
+                    </div>
+                </div>
+
+                <div class="premium-form-actions">
+                    <button type="submit" name="submit" class="button button-primary button-hero">Save Settings</button>
+                </div>
+            </form>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render general settings
+     */
+    public function render_general_settings() {
+        ?>
+        <div class="wrap premium-admin-wrap">
+            <h1 class="premium-page-title">
+                <span class="dashicons dashicons-admin-generic"></span>
+                General Settings
+            </h1>
+            <p>General settings coming soon...</p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Test Stripe connection
      */
     public function ajax_test_stripe() {
         check_ajax_referer('premium_content_admin', 'nonce');
@@ -237,12 +756,12 @@ class Premium_Content_Admin {
         if ($result['success']) {
             wp_send_json_success($result);
         } else {
-            wp_send_json_error($result['message']);
+            wp_send_json_error($result);
         }
     }
 
     /**
-     * AJAX: Test PayPal connection
+     * Test PayPal connection
      */
     public function ajax_test_paypal() {
         check_ajax_referer('premium_content_admin', 'nonce');
@@ -256,750 +775,7 @@ class Premium_Content_Admin {
         if ($result['success']) {
             wp_send_json_success($result);
         } else {
-            wp_send_json_error($result['message']);
+            wp_send_json_error($result);
         }
-    }
-
-    public function __construct() {
-        add_action('admin_menu', array($this, 'add_admin_menu'));
-        add_action('admin_init', array($this, 'register_settings'));
-        add_action('admin_notices', array($this, 'admin_notices'));
-
-        // In Premium_Content_Admin __construct(), add:
-        add_action('wp_ajax_premium_test_stripe', array($this, 'ajax_test_stripe'));
-        add_action('wp_ajax_premium_test_paypal', array($this, 'ajax_test_paypal'));
-    }
-
-    /**
-     * Add admin menu and submenus
-     */
-    public function add_admin_menu() {
-        add_menu_page(
-            'Premium Content',
-            'Premium Content',
-            'manage_options',
-            'premium-content',
-            array($this, 'render_dashboard_page'),
-            'dashicons-lock',
-            30
-        );
-
-        add_submenu_page('premium-content', 'Dashboard', 'Dashboard', 'manage_options', 'premium-content', array($this, 'render_dashboard_page'));
-        add_submenu_page('premium-content', 'Access Control', 'Access Control', 'manage_options', 'premium-content-access', array($this, 'render_access_control_page'));
-        add_submenu_page('premium-content', 'Subscription Plans', 'Plans', 'manage_options', 'premium-content-plans', array($this, 'render_plans_page'));
-        add_submenu_page('premium-content', 'Form Settings', 'Form Settings', 'manage_options', 'premium-content-form', array($this, 'render_form_page'));
-        add_submenu_page('premium-content', 'Subscribers', 'Subscribers', 'manage_options', 'premium-content-subscribers', array($this, 'render_subscribers_page'));
-        add_submenu_page('premium-content', 'Email Collection', 'Emails', 'manage_options', 'premium-content-emails', array($this, 'render_emails_page'));
-        add_submenu_page('premium-content', 'Settings', 'Settings', 'manage_options', 'premium-content-settings', array($this, 'render_settings_page'));
-        add_submenu_page('premium-content', 'Payment Gateways', 'Payments', 'manage_options', 'premium-content-payments', array($this, 'render_payments_page'));
-    }
-
-    /**
-     * Display admin notices
-     */
-    public function admin_notices() {
-        if (!Premium_Content_CF7_Handler::is_cf7_active() && get_current_screen()->parent_base === 'premium-content') {
-            echo '<div class="notice notice-warning"><p><strong>Premium Content:</strong> Contact Form 7 plugin is not installed or activated. <a href="' . admin_url('plugin-install.php?s=contact+form+7&tab=search&type=term') . '">Install Now</a></p></div>';
-        }
-    }
-
-    /**
-     * Register plugin settings
-     */
-    public function register_settings() {
-        register_setting('premium_content_options', 'premium_content_access_mode');
-        register_setting('premium_content_options', 'premium_content_metered_limit');
-    }
-
-    /**
-     * Render Dashboard Page
-     */
-    public function render_dashboard_page() {
-        $subscription_stats = Premium_Content_Subscription_Manager::get_statistics();
-        $view_stats = Premium_Content_Metered_Paywall::get_view_statistics();
-        $email_stats = Premium_Content_CF7_Handler::get_email_statistics();
-        $access_mode = premium_content_get_option('access_mode', 'free');
-        
-        $mode_labels = array('free' => 'Free', 'email_gate' => 'Email Gate', 'metered' => 'Metered', 'premium' => 'Premium');
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title">
-                <span class="dashicons dashicons-lock"></span>
-                Premium Content Dashboard
-            </h1>
-
-            <div class="premium-dashboard-grid">
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-subscribers"><span class="dashicons dashicons-groups"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number"><?php echo number_format($subscription_stats['total_active']); ?></div>
-                        <div class="premium-stat-label">Active Subscribers</div>
-                    </div>
-                </div>
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-revenue"><span class="dashicons dashicons-chart-line"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number">$<?php echo number_format($subscription_stats['total_revenue'], 2); ?></div>
-                        <div class="premium-stat-label">Total Revenue</div>
-                    </div>
-                </div>
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-views"><span class="dashicons dashicons-visibility"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number"><?php echo number_format($view_stats['total_views']); ?></div>
-                        <div class="premium-stat-label">Article Views (This Month)</div>
-                    </div>
-                </div>
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-emails"><span class="dashicons dashicons-email"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number"><?php echo number_format($email_stats['total_emails']); ?></div>
-                        <div class="premium-stat-label">Collected Emails</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="premium-dashboard-section">
-                <div class="premium-section-header"><h2>Current Configuration</h2></div>
-                <div class="premium-status-grid">
-                    <div class="premium-status-item">
-                        <span class="status-label">Access Mode:</span>
-                        <span class="status-value status-badge status-<?php echo esc_attr($access_mode); ?>">
-                            <?php echo isset($mode_labels[$access_mode]) ? $mode_labels[$access_mode] : ucfirst($access_mode); ?>
-                        </span>
-                    </div>
-                    <?php if ($access_mode === 'metered'): ?>
-                    <div class="premium-status-item">
-                        <span class="status-label">Article Limit:</span>
-                        <span class="status-value"><?php echo premium_content_get_option('metered_limit', 3); ?> articles/month</span>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <div class="premium-dashboard-section">
-                <div class="premium-section-header"><h2>Quick Actions</h2></div>
-                <div class="premium-quick-actions">
-                    <a href="<?php echo admin_url('admin.php?page=premium-content-access'); ?>" class="premium-action-button">
-                        <span class="dashicons dashicons-admin-settings"></span>Configure Access Control
-                    </a>
-                    <a href="<?php echo admin_url('admin.php?page=premium-content-plans'); ?>" class="premium-action-button">
-                        <span class="dashicons dashicons-cart"></span>Manage Plans
-                    </a>
-                    <a href="<?php echo admin_url('admin.php?page=premium-content-subscribers'); ?>" class="premium-action-button">
-                        <span class="dashicons dashicons-groups"></span>View Subscribers
-                    </a>
-                    <a href="<?php echo get_permalink(get_option('premium_content_page_pricing')); ?>" class="premium-action-button" target="_blank">
-                        <span class="dashicons dashicons-external"></span>Preview Pricing Page
-                    </a>
-                </div>
-            </div>
-        </div>
-        <?php
-    }
-
-    /**
-     * Render Access Control Page
-     */
-    public function render_access_control_page() {
-        if (isset($_POST['premium_save_access']) && check_admin_referer('premium_access_settings')) {
-            $this->save_access_settings();
-            echo '<div class="notice notice-success"><p>Access settings saved successfully!</p></div>';
-        }
-
-        $access_mode = premium_content_get_option('access_mode', 'free');
-        $metered_limit = premium_content_get_option('metered_limit', 3);
-        $metered_period = premium_content_get_option('metered_period', 'monthly');
-        $metered_show_counter = premium_content_get_option('metered_show_counter', '1');
-        $metered_counter_position = premium_content_get_option('metered_counter_position', 'top');
-        $exclude_admins = premium_content_get_option('exclude_admins', '1');
-        $allowed_post_types = premium_content_get_option('allowed_post_types', array('post'));
-        $allowed_categories = premium_content_get_option('allowed_categories', array());
-        
-        if (!is_array($allowed_post_types)) {
-            $allowed_post_types = array('post');
-        }
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title">
-                <span class="dashicons dashicons-admin-settings"></span>
-                Access Control Settings
-            </h1>
-
-            <form method="post" action="" class="premium-settings-form">
-                <?php wp_nonce_field('premium_access_settings'); ?>
-
-                <div class="premium-card">
-                    <div class="premium-card-header">
-                        <h2>Content Access Mode</h2>
-                        <p>Choose how visitors access your premium content</p>
-                    </div>
-                    <div class="premium-card-body">
-                        <div class="premium-mode-selector">
-                            <label class="premium-mode-option <?php echo $access_mode === 'free' ? 'active' : ''; ?>">
-                                <input type="radio" name="access_mode" value="free" <?php checked($access_mode, 'free'); ?>>
-                                <div class="mode-content">
-                                    <div class="mode-icon">🔓</div>
-                                    <div class="mode-title">Free Access</div>
-                                    <div class="mode-description">All content is freely accessible</div>
-                                </div>
-                            </label>
-                            <label class="premium-mode-option <?php echo $access_mode === 'email_gate' ? 'active' : ''; ?>">
-                                <input type="radio" name="access_mode" value="email_gate" <?php checked($access_mode, 'email_gate'); ?>>
-                                <div class="mode-content">
-                                    <div class="mode-icon">✉️</div>
-                                    <div class="mode-title">Email Gate</div>
-                                    <div class="mode-description">Require email, 30-day access</div>
-                                </div>
-                            </label>
-                            <label class="premium-mode-option <?php echo $access_mode === 'metered' ? 'active' : ''; ?>">
-                                <input type="radio" name="access_mode" value="metered" <?php checked($access_mode, 'metered'); ?>>
-                                <div class="mode-content">
-                                    <div class="mode-icon">📊</div>
-                                    <div class="mode-title">Metered Paywall</div>
-                                    <div class="mode-description">Limited free articles</div>
-                                </div>
-                            </label>
-                            <label class="premium-mode-option <?php echo $access_mode === 'premium' ? 'active' : ''; ?>">
-                                <input type="radio" name="access_mode" value="premium" <?php checked($access_mode, 'premium'); ?>>
-                                <div class="mode-content">
-                                    <div class="mode-icon">🔒</div>
-                                    <div class="mode-title">Full Premium</div>
-                                    <div class="mode-description">Requires subscription</div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Email Gate Settings -->
-                <div class="premium-card email-gate-settings" style="<?php echo $access_mode !== 'email_gate' ? 'display:none;' : ''; ?>">
-                    <div class="premium-card-header"><h2>Email Gate Configuration</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-alert premium-alert-info">
-                            <strong>How It Works:</strong> Visitor submits email → Gets 30-day cookie → Access to all email-gated content
-                        </div>
-                        <h3 style="margin: 30px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Content Targeting</h3>
-                        <?php $this->render_targeting_fields($allowed_post_types, $allowed_categories); ?>
-                    </div>
-                </div>
-
-                <!-- Metered Settings -->
-                <div class="premium-card metered-settings" style="<?php echo $access_mode !== 'metered' ? 'display:none;' : ''; ?>">
-                    <div class="premium-card-header"><h2>Metered Paywall Configuration</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-form-row">
-                            <div class="premium-form-group">
-                                <label class="premium-label">Free Article Limit</label>
-                                <input type="number" name="metered_limit" value="<?php echo esc_attr($metered_limit); ?>" min="1" max="100" class="premium-input">
-                            </div>
-                            <div class="premium-form-group">
-                                <label class="premium-label">Reset Period</label>
-                                <select name="metered_period" class="premium-select">
-                                    <option value="monthly" <?php selected($metered_period, 'monthly'); ?>>Monthly</option>
-                                    <option value="weekly" <?php selected($metered_period, 'weekly'); ?>>Weekly</option>
-                                    <option value="daily" <?php selected($metered_period, 'daily'); ?>>Daily</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-checkbox-label">
-                                <input type="checkbox" name="metered_show_counter" value="1" <?php checked($metered_show_counter, '1'); ?>>
-                                <span>Show article counter banner</span>
-                            </label>
-                        </div>
-                        <div class="premium-form-group counter-position" style="<?php echo $metered_show_counter !== '1' ? 'display:none;' : ''; ?>">
-                            <label class="premium-label">Counter Position</label>
-                            <select name="metered_counter_position" class="premium-select">
-                                <option value="top" <?php selected($metered_counter_position, 'top'); ?>>Top</option>
-                                <option value="bottom" <?php selected($metered_counter_position, 'bottom'); ?>>Bottom</option>
-                                <option value="floating" <?php selected($metered_counter_position, 'floating'); ?>>Floating</option>
-                            </select>
-                        </div>
-                        <h3 style="margin: 30px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Content Targeting</h3>
-                        <?php $this->render_targeting_fields($allowed_post_types, $allowed_categories); ?>
-                    </div>
-                </div>
-
-                <!-- Premium Settings -->
-                <div class="premium-card premium-settings" style="<?php echo $access_mode !== 'premium' ? 'display:none;' : ''; ?>">
-                    <div class="premium-card-header"><h2>Full Premium Configuration</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-alert premium-alert-info">
-                            <strong>Full Premium:</strong> All content requires active subscription, no free access
-                        </div>
-                        <h3 style="margin: 30px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Content Targeting</h3>
-                        <?php $this->render_targeting_fields($allowed_post_types, $allowed_categories); ?>
-                    </div>
-                </div>
-
-                <div class="premium-card">
-                    <div class="premium-card-header"><h2>Additional Options</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-form-group">
-                            <label class="premium-checkbox-label">
-                                <input type="checkbox" name="exclude_admins" value="1" <?php checked($exclude_admins, '1'); ?>>
-                                <span>Exclude administrators from paywall</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="premium-form-actions">
-                    <button type="submit" name="premium_save_access" class="button button-primary button-large">Save Settings</button>
-                </div>
-            </form>
-        </div>
-
-        <script>
-        jQuery(document).ready(function($) {
-            $('input[name="access_mode"]').on('change', function() {
-                $('.email-gate-settings, .metered-settings, .premium-settings').hide();
-                var mode = $(this).val();
-                if (mode === 'email_gate') $('.email-gate-settings').slideDown();
-                else if (mode === 'metered') $('.metered-settings').slideDown();
-                else if (mode === 'premium') $('.premium-settings').slideDown();
-                $('.premium-mode-option').removeClass('active');
-                $(this).closest('.premium-mode-option').addClass('active');
-            });
-            $('input[name="metered_show_counter"]').on('change', function() {
-                $('.counter-position').toggle($(this).is(':checked'));
-            });
-        });
-        </script>
-        <?php
-    }
-
-    private function render_targeting_fields($allowed_post_types, $allowed_categories) {
-        ?>
-        <div class="premium-form-group">
-            <label class="premium-label">Allowed Post Types</label>
-            <?php
-            $post_types = get_post_types(array('public' => true), 'objects');
-            foreach ($post_types as $post_type):
-                if (in_array($post_type->name, array('attachment', 'wp_block'))) continue;
-            ?>
-                <label class="premium-checkbox-label" style="display: block; margin-bottom: 8px;">
-                    <input type="checkbox" name="allowed_post_types[]" value="<?php echo esc_attr($post_type->name); ?>" <?php checked(in_array($post_type->name, $allowed_post_types)); ?>>
-                    <span><?php echo esc_html($post_type->label); ?></span>
-                </label>
-            <?php endforeach; ?>
-        </div>
-        <div class="premium-form-group">
-            <label class="premium-label">Allowed Categories (Posts Only)</label>
-            <?php $categories = get_categories(array('hide_empty' => false));
-            if (!empty($categories)): ?>
-                <select name="allowed_categories[]" class="premium-select" multiple size="10" style="height: auto;">
-                    <option value="">-- All Categories --</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo esc_attr($category->term_id); ?>" <?php echo in_array($category->term_id, $allowed_categories) ? 'selected' : ''; ?>>
-                            <?php echo esc_html($category->name); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <p class="premium-description">Hold Ctrl/Cmd to select multiple. Empty = all categories</p>
-            <?php else: ?>
-                <p>No categories found.</p>
-            <?php endif; ?>
-        </div>
-        <?php
-    }
-
-    private function save_access_settings() {
-        premium_content_update_option('access_mode', sanitize_text_field($_POST['access_mode']));
-        premium_content_update_option('metered_limit', intval($_POST['metered_limit']));
-        premium_content_update_option('metered_period', sanitize_text_field($_POST['metered_period']));
-        premium_content_update_option('metered_show_counter', isset($_POST['metered_show_counter']) ? '1' : '0');
-        premium_content_update_option('metered_counter_position', sanitize_text_field($_POST['metered_counter_position']));
-        premium_content_update_option('exclude_admins', isset($_POST['exclude_admins']) ? '1' : '0');
-        
-        $allowed_post_types = isset($_POST['allowed_post_types']) && is_array($_POST['allowed_post_types']) ? array_map('sanitize_text_field', $_POST['allowed_post_types']) : array('post');
-        premium_content_update_option('allowed_post_types', $allowed_post_types);
-        
-        $allowed_categories = isset($_POST['allowed_categories']) && is_array($_POST['allowed_categories']) ? array_map('intval', $_POST['allowed_categories']) : array();
-        premium_content_update_option('allowed_categories', $allowed_categories);
-    }
-
-    public function render_plans_page() {
-        if (isset($_POST['premium_save_plan']) && check_admin_referer('premium_plan_action')) {
-            $this->save_plan();
-            echo '<div class="notice notice-success"><p>Plan saved!</p></div>';
-        }
-        if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['plan_id']) && check_admin_referer('delete_plan_' . $_GET['plan_id'])) {
-            Premium_Content_Subscription_Manager::delete_plan($_GET['plan_id']);
-            echo '<div class="notice notice-success"><p>Plan deleted!</p></div>';
-        }
-
-        $plans = Premium_Content_Subscription_Manager::get_plans();
-        $editing_plan = null;
-        if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['plan_id'])) {
-            $editing_plan = Premium_Content_Subscription_Manager::get_plan(intval($_GET['plan_id']));
-        }
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title">
-                <span class="dashicons dashicons-cart"></span>Subscription Plans
-                <?php if (!$editing_plan && !isset($_GET['action'])): ?>
-                <a href="?page=premium-content-plans&action=new" class="page-title-action">Add New</a>
-                <?php endif; ?>
-            </h1>
-
-            <?php if (isset($_GET['action']) && ($_GET['action'] === 'new' || $_GET['action'] === 'edit')): ?>
-                <form method="post" class="premium-settings-form">
-                    <?php wp_nonce_field('premium_plan_action'); ?>
-                    <input type="hidden" name="plan_id" value="<?php echo $editing_plan ? esc_attr($editing_plan->id) : ''; ?>">
-                    <div class="premium-card">
-                        <div class="premium-card-header"><h2><?php echo $editing_plan ? 'Edit Plan' : 'Create Plan'; ?></h2></div>
-                        <div class="premium-card-body">
-                            <div class="premium-form-row">
-                                <div class="premium-form-group">
-                                    <label class="premium-label">Plan Name *</label>
-                                    <input type="text" name="plan_name" value="<?php echo $editing_plan ? esc_attr($editing_plan->name) : ''; ?>" class="premium-input" required>
-                                </div>
-                                <div class="premium-form-group">
-                                    <label class="premium-label">Price *</label>
-                                    <div class="premium-input-group">
-                                        <span class="input-prefix">$</span>
-                                        <input type="number" name="plan_price" value="<?php echo $editing_plan ? esc_attr($editing_plan->price) : ''; ?>" step="0.01" min="0" class="premium-input" required>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="premium-form-row">
-                                <div class="premium-form-group">
-                                    <label class="premium-label">Billing Interval *</label>
-                                    <select name="plan_interval" class="premium-select" required>
-                                        <option value="monthly" <?php echo ($editing_plan && $editing_plan->interval === 'monthly') ? 'selected' : ''; ?>>Monthly</option>
-                                        <option value="yearly" <?php echo ($editing_plan && $editing_plan->interval === 'yearly') ? 'selected' : ''; ?>>Yearly</option>
-                                        <option value="lifetime" <?php echo ($editing_plan && $editing_plan->interval === 'lifetime') ? 'selected' : ''; ?>>Lifetime</option>
-                                    </select>
-                                </div>
-                                <div class="premium-form-group">
-                                    <label class="premium-label">Yearly Discount (optional)</label>
-                                    <div class="premium-input-group">
-                                        <input type="number" name="plan_yearly_discount" value="<?php echo $editing_plan ? esc_attr(get_post_meta($editing_plan->id, '_yearly_discount_percentage', true)) : ''; ?>" step="1" min="0" max="100" class="premium-input" placeholder="20">
-                                        <span class="input-suffix">%</span>
-                                    </div>
-                                    <p class="premium-description">If this is a yearly plan, show "Save X%" badge (e.g., 20)</p>
-                                </div>
-                                <div class="premium-form-group">
-                                    <label class="premium-label">Status</label>
-                                    <select name="plan_status" class="premium-select">
-                                        <option value="active" <?php echo ($editing_plan && $editing_plan->status === 'active') ? 'selected' : ''; ?>>Active</option>
-                                        <option value="inactive" <?php echo ($editing_plan && $editing_plan->status === 'inactive') ? 'selected' : ''; ?>>Inactive</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="premium-form-group">
-                                <label class="premium-label">Description</label>
-                                <textarea name="plan_description" rows="3" class="premium-textarea"><?php echo $editing_plan ? esc_textarea($editing_plan->description) : ''; ?></textarea>
-                            </div>
-                            <div class="premium-form-group">
-                                <label class="premium-label">Features (one per line)</label>
-                                <textarea name="plan_features" rows="5" class="premium-textarea"><?php 
-                                    if ($editing_plan && $editing_plan->features) {
-                                        $features = json_decode($editing_plan->features, true);
-                                        echo esc_textarea(implode("\n", $features));
-                                    }
-                                ?></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="premium-form-actions">
-                        <button type="submit" name="premium_save_plan" class="button button-primary button-large"><?php echo $editing_plan ? 'Update' : 'Create'; ?></button>
-                        <a href="?page=premium-content-plans" class="button button-large">Cancel</a>
-                    </div>
-                </form>
-            <?php else: ?>
-                <div class="premium-plans-grid">
-                    <?php foreach ($plans as $plan): 
-                        $features = json_decode($plan->features, true);
-                    ?>
-                    <div class="premium-plan-card">
-                        <div class="plan-header">
-                            <h3><?php echo esc_html($plan->name); ?></h3>
-                            <div class="plan-price">
-                                <span class="currency">$</span>
-                                <span class="amount"><?php echo number_format($plan->price, 2); ?></span>
-                                <span class="period">/<?php echo esc_html($plan->interval); ?></span>
-                            </div>
-                        </div>
-                        <div class="plan-body">
-                            <?php if ($plan->description): ?><p class="plan-description"><?php echo esc_html($plan->description); ?></p><?php endif; ?>
-                            <?php if ($features): ?>
-                            <ul class="plan-features">
-                                <?php foreach ($features as $feature): ?><li><?php echo esc_html($feature); ?></li><?php endforeach; ?>
-                            </ul>
-                            <?php endif; ?>
-                        </div>
-                        <div class="plan-footer">
-                            <span class="plan-status status-<?php echo esc_attr($plan->status); ?>"><?php echo ucfirst($plan->status); ?></span>
-                            <div class="plan-actions">
-                                <a href="?page=premium-content-plans&action=edit&plan_id=<?php echo $plan->id; ?>" class="button button-small">Edit</a>
-                                <a href="?page=premium-content-plans&action=delete&plan_id=<?php echo $plan->id; ?>&_wpnonce=<?php echo wp_create_nonce('delete_plan_' . $plan->id); ?>" class="button button-small button-link-delete" onclick="return confirm('Delete this plan?')">Delete</a>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php
-    }
-
-    private function save_plan() {
-        $plan_id = isset($_POST['plan_id']) && !empty($_POST['plan_id']) ? intval($_POST['plan_id']) : null;
-        $features_text = sanitize_textarea_field($_POST['plan_features']);
-        $features_array = array_filter(array_map('trim', explode("\n", $features_text)));
-        
-        $plan_data = array(
-            'name' => sanitize_text_field($_POST['plan_name']),
-            'description' => sanitize_textarea_field($_POST['plan_description']),
-            'price' => floatval($_POST['plan_price']),
-            'interval' => sanitize_text_field($_POST['plan_interval']),
-            'features' => $features_array,
-            'status' => sanitize_text_field($_POST['plan_status'])
-        );
-        
-        $saved_plan_id = Premium_Content_Subscription_Manager::save_plan($plan_data, $plan_id);
-        
-        // Save yearly discount as post meta
-        if ($saved_plan_id && isset($_POST['plan_yearly_discount'])) {
-            $discount = intval($_POST['plan_yearly_discount']);
-            if ($discount > 0 && $discount <= 100) {
-                update_post_meta($saved_plan_id, '_yearly_discount_percentage', $discount);
-            } else {
-                delete_post_meta($saved_plan_id, '_yearly_discount_percentage');
-            }
-        }
-    }
-
-    public function render_form_page() {
-        if (isset($_POST['premium_save_form']) && check_admin_referer('premium_form_settings')) {
-            premium_content_update_option('cf7_form_id', intval($_POST['cf7_form_id']));
-            echo '<div class="notice notice-success"><p>Form settings saved!</p></div>';
-        }
-
-        $cf7_form_id = premium_content_get_option('cf7_form_id', '');
-        $cf7_forms = Premium_Content_CF7_Handler::get_forms_dropdown();
-        $cf7_active = Premium_Content_CF7_Handler::is_cf7_active();
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title"><span class="dashicons dashicons-feedback"></span>Form Settings</h1>
-
-            <?php if (!$cf7_active): ?>
-                <div class="premium-card">
-                    <div class="premium-card-body">
-                        <h3>Contact Form 7 Not Installed</h3>
-                        <p>This plugin requires Contact Form 7 to be installed and activated.</p>
-                        <a href="<?php echo admin_url('plugin-install.php?s=contact+form+7&tab=search&type=term'); ?>" class="button button-primary">Install Contact Form 7</a>
-                    </div>
-                </div>
-            <?php else: ?>
-                <form method="post" class="premium-settings-form">
-                    <?php wp_nonce_field('premium_form_settings'); ?>
-                    <div class="premium-card">
-                        <div class="premium-card-header"><h2>Contact Form 7 Configuration</h2></div>
-                        <div class="premium-card-body">
-                            <?php if (empty($cf7_forms)): ?>
-                                <p>No Contact Form 7 forms found.</p>
-                                <button type="button" id="premium-create-cf7-form" class="button button-primary">Create Premium Form Automatically</button>
-                            <?php else: ?>
-                                <div class="premium-form-group">
-                                    <label class="premium-label">Select Form</label>
-                                    <select name="cf7_form_id" class="premium-select">
-                                        <option value="">-- Select a form --</option>
-                                        <?php foreach ($cf7_forms as $form_id => $form_title): ?>
-                                            <option value="<?php echo esc_attr($form_id); ?>" <?php selected($cf7_form_id, $form_id); ?>><?php echo esc_html($form_title); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <?php if ($cf7_form_id): ?>
-                                        <p class="premium-description"><a href="<?php echo admin_url('admin.php?page=wpcf7&post=' . $cf7_form_id . '&action=edit'); ?>" target="_blank">Edit this form in Contact Form 7</a></p>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="premium-form-group">
-                                    <button type="button" id="premium-create-cf7-form" class="button">Create New Premium Form</button>
-                                </div>
-                            <?php endif; ?>
-                            <div class="premium-form-group">
-                                <label class="premium-label">Form Template</label>
-                                <p class="premium-description">Use this template if creating a form manually:</p>
-                                <textarea readonly class="premium-textarea" rows="12"><?php echo esc_textarea(Premium_Content_CF7_Handler::get_form_template()); ?></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="premium-form-actions">
-                        <button type="submit" name="premium_save_form" class="button button-primary button-large">Save Form Settings</button>
-                    </div>
-                </form>
-            <?php endif; ?>
-        </div>
-        <?php
-    }
-
-    public function render_subscribers_page() {
-        global $wpdb;
-        $table = $wpdb->prefix . 'premium_subscriptions';
-        $subscriptions = $wpdb->get_results("SELECT s.*, p.name as plan_name, u.user_email, u.display_name FROM $table s LEFT JOIN {$wpdb->prefix}premium_plans p ON s.plan_id = p.id LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID ORDER BY s.created_at DESC LIMIT 100");
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title"><span class="dashicons dashicons-groups"></span>Subscribers</h1>
-            <table class="wp-list-table widefat striped">
-                <thead>
-                    <tr><th>User</th><th>Plan</th><th>Status</th><th>Started</th><th>Expires</th><th>Payment</th></tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($subscriptions)): ?>
-                        <tr><td colspan="6">No subscriptions yet.</td></tr>
-                    <?php else: foreach ($subscriptions as $sub): ?>
-                        <tr>
-                            <td><strong><?php echo esc_html($sub->display_name); ?></strong><br><small><?php echo esc_html($sub->user_email); ?></small></td>
-                            <td><?php echo esc_html($sub->plan_name); ?></td>
-                            <td><span class="plan-status status-<?php echo esc_attr($sub->status); ?>"><?php echo ucfirst($sub->status); ?></span></td>
-                            <td><?php echo date('M j, Y', strtotime($sub->started_at)); ?></td>
-                            <td><?php echo $sub->expires_at ? date('M j, Y', strtotime($sub->expires_at)) : 'Never'; ?></td>
-                            <td><?php echo ucfirst($sub->payment_method); ?></td>
-                        </tr>
-                    <?php endforeach; endif; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php
-    }
-
-    public function render_emails_page() {
-        global $wpdb;
-        if (isset($_GET['action']) && $_GET['action'] === 'export') {
-            Premium_Content_CF7_Handler::export_emails_csv();
-            exit;
-        }
-        
-        $table = $wpdb->prefix . 'premium_emails';
-        $emails = $wpdb->get_results("SELECT * FROM $table ORDER BY created_at DESC LIMIT 100");
-        $stats = Premium_Content_CF7_Handler::get_email_statistics();
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title">
-                <span class="dashicons dashicons-email"></span>Email Collection
-                <a href="?page=premium-content-emails&action=export" class="page-title-action">Export CSV</a>
-            </h1>
-            <div class="premium-dashboard-grid" style="margin-bottom: 30px;">
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-emails"><span class="dashicons dashicons-email"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number"><?php echo number_format($stats['total_emails']); ?></div>
-                        <div class="premium-stat-label">Total Emails</div>
-                    </div>
-                </div>
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-subscribers"><span class="dashicons dashicons-admin-users"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number"><?php echo number_format($stats['unique_emails']); ?></div>
-                        <div class="premium-stat-label">Unique Emails</div>
-                    </div>
-                </div>
-                <div class="premium-stat-card">
-                    <div class="premium-stat-icon premium-stat-views"><span class="dashicons dashicons-calendar"></span></div>
-                    <div class="premium-stat-content">
-                        <div class="premium-stat-number"><?php echo number_format($stats['this_month']); ?></div>
-                        <div class="premium-stat-label">This Month</div>
-                    </div>
-                </div>
-            </div>
-            <table class="wp-list-table widefat striped">
-                <thead>
-                    <tr><th>Email Address</th><th>Post</th><th>Date Collected</th></tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($emails)): ?>
-                        <tr><td colspan="3">No emails collected yet.</td></tr>
-                    <?php else: foreach ($emails as $email): ?>
-                        <tr>
-                            <td><strong><?php echo esc_html($email->email); ?></strong></td>
-                            <td><a href="<?php echo get_permalink($email->post_id); ?>" target="_blank"><?php echo get_the_title($email->post_id) ?: 'Post #' . $email->post_id; ?></a></td>
-                            <td><?php echo date('M j, Y g:i A', strtotime($email->created_at)); ?></td>
-                        </tr>
-                    <?php endforeach; endif; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php
-    }
-
-    public function render_settings_page() {
-        if (isset($_POST['premium_save_settings']) && check_admin_referer('premium_general_settings')) {
-            $this->save_general_settings();
-            echo '<div class="notice notice-success"><p>Settings saved!</p></div>';
-        }
-
-        $primary_color = premium_content_get_option('primary_color', '#667eea');
-        $secondary_color = premium_content_get_option('secondary_color', '#764ba2');
-        $paywall_title = premium_content_get_option('paywall_title', 'Subscribe to Continue Reading');
-        $paywall_description = premium_content_get_option('paywall_description', 'Get unlimited access to all premium content');
-        $counter_text = premium_content_get_option('counter_text', 'You have {remaining} free articles remaining');
-        $debug_mode = premium_content_get_option('debug_mode', '0');
-        ?>
-        <div class="wrap premium-admin-wrap">
-            <h1 class="premium-page-title"><span class="dashicons dashicons-admin-generic"></span>General Settings</h1>
-            <form method="post" class="premium-settings-form">
-                <?php wp_nonce_field('premium_general_settings'); ?>
-                <div class="premium-card">
-                    <div class="premium-card-header"><h2>Design & Styling</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-form-row">
-                            <div class="premium-form-group">
-                                <label class="premium-label">Primary Color</label>
-                                <input type="color" name="primary_color" value="<?php echo esc_attr($primary_color); ?>" class="premium-input">
-                            </div>
-                            <div class="premium-form-group">
-                                <label class="premium-label">Secondary Color</label>
-                                <input type="color" name="secondary_color" value="<?php echo esc_attr($secondary_color); ?>" class="premium-input">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="premium-card">
-                    <div class="premium-card-header"><h2>Text & Messaging</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-form-group">
-                            <label class="premium-label">Paywall Title</label>
-                            <input type="text" name="paywall_title" value="<?php echo esc_attr($paywall_title); ?>" class="premium-input">
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Paywall Description</label>
-                            <textarea name="paywall_description" rows="3" class="premium-textarea"><?php echo esc_textarea($paywall_description); ?></textarea>
-                        </div>
-                        <div class="premium-form-group">
-                            <label class="premium-label">Counter Banner Text</label>
-                            <input type="text" name="counter_text" value="<?php echo esc_attr($counter_text); ?>" class="premium-input">
-                            <p class="premium-description">Use {remaining} as placeholder</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="premium-card">
-                    <div class="premium-card-header"><h2>Advanced Options</h2></div>
-                    <div class="premium-card-body">
-                        <div class="premium-form-group">
-                            <label class="premium-checkbox-label">
-                                <input type="checkbox" name="debug_mode" value="1" <?php checked($debug_mode, '1'); ?>>
-                                <span>Enable debug mode</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="premium-form-actions">
-                    <button type="submit" name="premium_save_settings" class="button button-primary button-large">Save Settings</button>
-                </div>
-            </form>
-        </div>
-        <?php
-    }
-
-    private function save_general_settings() {
-        premium_content_update_option('primary_color', sanitize_hex_color($_POST['primary_color']));
-        premium_content_update_option('secondary_color', sanitize_hex_color($_POST['secondary_color']));
-        premium_content_update_option('paywall_title', sanitize_text_field($_POST['paywall_title']));
-        premium_content_update_option('paywall_description', sanitize_textarea_field($_POST['paywall_description']));
-        premium_content_update_option('counter_text', sanitize_text_field($_POST['counter_text']));
-        premium_content_update_option('debug_mode', isset($_POST['debug_mode']) ? '1' : '0');
     }
 }

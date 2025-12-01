@@ -264,7 +264,6 @@
   margin-bottom: 25px !important;
 }
 
-
 /* === Single plug-and-play checkbox style for checkbox3 === */
 
 /* 1) Hide the native input visually but keep it focusable/accessible */
@@ -275,7 +274,7 @@
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
-  clip: rect(0 0 0 0) !important;     /* accessible hiding */
+  clip: rect(0 0 0 0) !important; /* accessible hiding */
   white-space: nowrap !important;
   border: 0 !important;
   left: -9999px !important;
@@ -285,7 +284,7 @@
 /* 2) Style the visible label text (the span CF7 outputs) */
 #premium-content-gate .wpcf7 .wpcf7-list-item-label {
   position: relative !important;
-  padding-left: 36px !important;     /* room for the fake box */
+  padding-left: 36px !important; /* room for the fake box */
   cursor: pointer !important;
   font-size: 14px !important;
   color: #666 !important;
@@ -307,21 +306,33 @@
   border-radius: 4px !important;
   background: #fff !important;
   box-sizing: border-box !important;
-  transition: all .15s ease !important;
+  transition: all 0.15s ease !important;
   z-index: 1 !important;
 }
 
 /* 4) Checked state: change color of fake box */
 /* Use both + and ~ so it works whether the span is immediate or general sibling */
-#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked + .wpcf7-list-item-label:before,
-#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked ~ .wpcf7-list-item-label:before {
+#premium-content-gate
+  .wpcf7
+  input[type="checkbox"][name="checkbox3[]"]:checked
+  + .wpcf7-list-item-label:before,
+#premium-content-gate
+  .wpcf7
+  input[type="checkbox"][name="checkbox3[]"]:checked
+  ~ .wpcf7-list-item-label:before {
   background: #667eea !important;
   border-color: #667eea !important;
 }
 
 /* 5) Check mark */
-#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked + .wpcf7-list-item-label:after,
-#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:checked ~ .wpcf7-list-item-label:after {
+#premium-content-gate
+  .wpcf7
+  input[type="checkbox"][name="checkbox3[]"]:checked
+  + .wpcf7-list-item-label:after,
+#premium-content-gate
+  .wpcf7
+  input[type="checkbox"][name="checkbox3[]"]:checked
+  ~ .wpcf7-list-item-label:after {
   content: "✓" !important;
   position: absolute !important;
   left: 4px !important;
@@ -334,7 +345,217 @@
 }
 
 /* 6) Focus outline for keyboard users */
-#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:focus + .wpcf7-list-item-label:before,
-#premium-content-gate .wpcf7 input[type="checkbox"][name="checkbox3[]"]:focus ~ .wpcf7-list-item-label:before {
-  box-shadow: 0 0 0 3px rgba(102,126,234,0.18) !important;
+#premium-content-gate
+  .wpcf7
+  input[type="checkbox"][name="checkbox3[]"]:focus
+  + .wpcf7-list-item-label:before,
+#premium-content-gate
+  .wpcf7
+  input[type="checkbox"][name="checkbox3[]"]:focus
+  ~ .wpcf7-list-item-label:before {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18) !important;
+}
+/* ================================================
+   SOCIAL MEDIA UNLOCK STYLES
+   ================================================ */
+
+.premium-unlock-options {
+  width: 100%;
+}
+
+.unlock-choice-text {
+  text-align: center;
+  font-size: 15px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.premium-social-unlock,
+.premium-email-unlock {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.premium-social-unlock:hover,
+.premium-email-unlock:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.unlock-option-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.unlock-option-title svg {
+  flex-shrink: 0;
+}
+
+.unlock-option-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+}
+
+/* Social Buttons */
+.social-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.social-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.social-button svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.social-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.social-facebook {
+  background: #1877f2;
+}
+
+.social-facebook:hover {
+  background: #166fe5;
+}
+
+.social-twitter {
+  background: #1da1f2;
+}
+
+.social-twitter:hover {
+  background: #0c90e2;
+}
+
+.social-instagram {
+  background: linear-gradient(
+    135deg,
+    #f09433 0%,
+    #e6683c 25%,
+    #dc2743 50%,
+    #cc2366 75%,
+    #bc1888 100%
+  );
+}
+
+.social-instagram:hover {
+  opacity: 0.9;
+}
+
+.social-linkedin {
+  background: #0077b5;
+}
+
+.social-linkedin:hover {
+  background: #006399;
+}
+
+/* Unlock Status */
+.unlock-status {
+  text-align: center;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.unlock-loader {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.unlock-message {
+  font-size: 14px;
+  color: #667eea;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Divider */
+.unlock-divider {
+  position: relative;
+  text-align: center;
+  margin: 24px 0;
+}
+
+.unlock-divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.unlock-divider span {
+  position: relative;
+  display: inline-block;
+  padding: 0 16px;
+  background: white;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Email Gate Single Mode (when social is disabled) */
+.premium-email-gate-single {
+  padding: 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .social-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-social-unlock,
+  .premium-email-unlock {
+    padding: 20px 16px;
+  }
+
+  .unlock-option-title {
+    font-size: 16px;
+  }
 }
